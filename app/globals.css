@@ -1,0 +1,381 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+ * Dark mode: explicit `data-theme="dark"` on <html>, or the OS preference when the
+ * user chose "system" (no data-theme, or data-theme="system").
+ */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']):not([data-theme='dark']) *) {
+      @slot;
+    }
+  }
+}
+
+/* ---------- Design tokens (section 3) ---------- */
+:root {
+  --bg: #f3f4f9;
+  --surface: #ffffff;
+  --surface-2: #eceef6;
+  --line: #d9dcea;
+  --fg: #171b2e;
+  --muted: #586079;
+  --accent: #2f45c5;
+  --accent-fg: #ffffff;
+  --accent-soft: #e3e7fb;
+  --ok: #15734a;
+  --ok-soft: #dcf2e6;
+  --warn: #8a5700;
+  --warn-soft: #fbeed0;
+  --bad: #b1232c;
+  --bad-soft: #fbe2e3;
+  --premium: #6d3fc0;
+  --overlay: rgb(15 18 32 / 0.45);
+  --shadow-pop: 0 8px 24px -6px rgb(23 27 46 / 0.18), 0 2px 6px -2px rgb(23 27 46 / 0.12);
+
+  /* shadcn variable names, mapped onto our tokens */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted-foreground: var(--muted);
+  --destructive: var(--bad);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0f1220;
+  --surface: #161a2a;
+  --surface-2: #1e2337;
+  --line: #2a3048;
+  --fg: #e7e9f3;
+  --muted: #9aa2bb;
+  --accent: #8fa0ff;
+  --accent-fg: #0f1220;
+  --accent-soft: #242c59;
+  --ok: #5fd09a;
+  --ok-soft: #16322a;
+  --warn: #f0bd58;
+  --warn-soft: #3a2d10;
+  --bad: #ff8d93;
+  --bad-soft: #3d1c20;
+  --premium: #b99cff;
+  --overlay: rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    --bg: #0f1220;
+    --surface: #161a2a;
+    --surface-2: #1e2337;
+    --line: #2a3048;
+    --fg: #e7e9f3;
+    --muted: #9aa2bb;
+    --accent: #8fa0ff;
+    --accent-fg: #0f1220;
+    --accent-soft: #242c59;
+    --ok: #5fd09a;
+    --ok-soft: #16322a;
+    --warn: #f0bd58;
+    --warn-soft: #3a2d10;
+    --bad: #ff8d93;
+    --bad-soft: #3d1c20;
+    --premium: #b99cff;
+    --overlay: rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-premium: var(--premium);
+  --color-overlay: var(--overlay);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  --shadow-pop: var(--shadow-pop);
+}
+
+@theme {
+  /* Type scale (px): 12 / 13 / 14 (base) / 16 / 20 / 24 / 30, plus 11 for uppercase labels */
+  --text-2xs: 11px;
+  --text-2xs--line-height: 16px;
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-md: 16px;
+  --text-md--line-height: 24px;
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
+  --text-xl: 24px;
+  --text-xl--line-height: 32px;
+  --text-2xl: 30px;
+  --text-2xl--line-height: 36px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --container-content: 1280px;
+  --container-reading: 72ch;
+
+  --breakpoint-lg: 1024px;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  table,
+  time,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+@layer utilities {
+  /* Uppercase micro-label: 11px, 600, 0.08em tracking */
+  .label-caps {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .link {
+    color: var(--accent);
+    text-underline-offset: 2px;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Rendered Markdown (policy bodies, previews) ---------- */
+@layer components {
+  .markdown {
+    color: var(--fg);
+    font-size: 15px;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+
+    & > :first-child {
+      margin-top: 0;
+    }
+    & h1,
+    & h2,
+    & h3,
+    & h4 {
+      scroll-margin-top: 72px;
+      line-height: 1.3;
+      font-weight: 600;
+    }
+    & h1 {
+      font-size: 24px;
+      margin: 1.6em 0 0.6em;
+    }
+    & h2 {
+      font-size: 20px;
+      margin: 1.8em 0 0.6em;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid var(--line);
+    }
+    & h3 {
+      font-size: 16px;
+      margin: 1.5em 0 0.4em;
+    }
+    & h4 {
+      font-size: 15px;
+      margin: 1.2em 0 0.4em;
+    }
+    & p,
+    & ul,
+    & ol,
+    & blockquote,
+    & .table-wrap,
+    & pre {
+      margin: 0.75em 0;
+    }
+    & ul,
+    & ol {
+      padding-left: 1.4em;
+    }
+    & ul {
+      list-style: disc;
+    }
+    & ol {
+      list-style: decimal;
+    }
+    & li + li {
+      margin-top: 0.3em;
+    }
+    & li::marker {
+      color: var(--muted);
+    }
+    & a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-thickness: 1px;
+    }
+    & a.wikilink {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      text-decoration-style: dotted;
+    }
+    & .wikilink-broken {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      color: var(--bad);
+      text-decoration: underline wavy;
+      text-underline-offset: 3px;
+      cursor: help;
+      font-style: normal;
+    }
+    & strong {
+      font-weight: 600;
+    }
+    & code {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+      background: var(--surface-2);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+    }
+    & pre {
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0.75em 1em;
+      overflow-x: auto;
+      & code {
+        background: none;
+        padding: 0;
+      }
+    }
+    & blockquote {
+      border-left: 3px solid var(--line);
+      padding-left: 1em;
+      color: var(--muted);
+    }
+    & hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 2em 0;
+    }
+    & .table-wrap {
+      overflow-x: auto;
+    }
+    & table {
+      border-collapse: collapse;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    & th,
+    & td {
+      border: 1px solid var(--line);
+      padding: 0.4em 0.75em;
+      text-align: left;
+      vertical-align: top;
+    }
+    & th {
+      background: var(--surface-2);
+      font-weight: 600;
+    }
+    & input[type='checkbox'] {
+      margin-right: 0.4em;
+    }
+  }
+}
