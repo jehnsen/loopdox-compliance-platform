@@ -10,7 +10,8 @@ export function useMembers(org: string) {
   const query = { pageSize: 200, status: 'active' }
   return useQuery({
     queryKey: qk.members(org, query),
-    queryFn: ({ signal }) => api.get<ListResponse<Member>>(orgPath(org, '/members'), { query, signal }),
+    queryFn: ({ signal }) =>
+      api.get<ListResponse<Member>>(orgPath(org, '/members'), { query, signal }),
     select: (d) => d.items,
     staleTime: 5 * 60_000,
   })

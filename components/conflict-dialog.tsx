@@ -59,8 +59,9 @@ export function ConflictDialog({
           <DialogDescription>
             {theirs ? (
               <>
-                {theirs.updatedByName} saved a newer version <DateText value={theirs.updatedAt} relative /> while you
-                were editing. Review their changes, then keep yours or theirs.
+                {theirs.updatedByName} saved a newer version{' '}
+                <DateText value={theirs.updatedAt} relative /> while you were editing. Review their
+                changes, then keep yours or theirs.
               </>
             ) : (
               'Loading the latest version…'
@@ -69,14 +70,25 @@ export function ConflictDialog({
         </DialogHeader>
         {reviewing ? (
           theirs ? (
-            <LazyDiffView oldText={theirs.text} newText={mineText} oldLabel={theirs.label} newLabel="Your changes" className="max-h-[55vh] overflow-y-auto" />
+            <LazyDiffView
+              oldText={theirs.text}
+              newText={mineText}
+              oldLabel={theirs.label}
+              newLabel="Your changes"
+              className="max-h-[55vh] overflow-y-auto"
+            />
           ) : (
             <Skeleton className="h-48" />
           )
         ) : null}
         <DialogFooter>
           {!reviewing ? (
-            <Button variant="secondary" onClick={() => setReviewing(true)} disabled={!theirs} className="sm:mr-auto">
+            <Button
+              variant="secondary"
+              onClick={() => setReviewing(true)}
+              disabled={!theirs}
+              className="sm:mr-auto"
+            >
               Review their changes
             </Button>
           ) : null}

@@ -8,7 +8,14 @@ import { ROLE_LABELS } from '@/lib/auth/permissions'
 import { cn } from '@/lib/utils/cn'
 import { initials } from '@/lib/utils/format'
 import { useOrgSlug } from '@/components/providers/session-provider'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 /** Searches the org's members. Auditor guests are excluded by default. */
@@ -18,7 +25,8 @@ export function PeoplePicker({
   id,
   placeholder = 'Choose a person',
   filter = (m) => !m.roles.every((r) => r === 'auditor'),
-  ...aria
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: {
   value: string | null
   onChange: (userId: string) => void
@@ -39,12 +47,16 @@ export function PeoplePicker({
         <button
           id={id}
           type="button"
-          {...aria}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           className="flex h-8 w-full items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-left text-base aria-invalid:border-bad"
         >
           {selected ? (
             <>
-              <span aria-hidden="true" className="flex size-5 items-center justify-center rounded-full bg-accent-soft text-2xs font-semibold text-accent">
+              <span
+                aria-hidden="true"
+                className="flex size-5 items-center justify-center rounded-full bg-accent-soft text-2xs font-semibold text-accent"
+              >
                 {initials(selected.name)}
               </span>
               <span className="truncate">{selected.name}</span>
@@ -76,7 +88,13 @@ export function PeoplePicker({
                       {m.title ?? m.roles.map((r) => ROLE_LABELS[r]).join(', ')}
                     </span>
                   </span>
-                  <CheckIcon className={cn('ml-auto text-accent!', m.userId === value ? 'opacity-100' : 'opacity-0')} aria-hidden="true" />
+                  <CheckIcon
+                    className={cn(
+                      'ml-auto text-accent!',
+                      m.userId === value ? 'opacity-100' : 'opacity-0',
+                    )}
+                    aria-hidden="true"
+                  />
                 </CommandItem>
               ))}
             </CommandGroup>

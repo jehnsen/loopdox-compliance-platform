@@ -14,8 +14,9 @@ export async function resetMockDb(page: Page): Promise<void> {
   expect(res.ok()).toBe(true)
 }
 
-/** Signs in through the mock-mode "Sign in as…" list. */
+/** Signs in through the mock-mode "Sign in as…" list (signing out any current user first). */
 export async function signInAs(page: Page, email: string, next?: string): Promise<void> {
+  await page.context().clearCookies()
   await page.goto(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
   await page.getByTestId(`sign-in-as-${email}`).click()
   await page.waitForURL((url) => !url.pathname.startsWith('/login'))

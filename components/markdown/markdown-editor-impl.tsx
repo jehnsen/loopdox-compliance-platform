@@ -1,6 +1,10 @@
 'use client'
 
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
+import {
+  autocompletion,
+  type CompletionContext,
+  type CompletionResult,
+} from '@codemirror/autocomplete'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorSelection, Prec } from '@codemirror/state'
@@ -53,7 +57,10 @@ function wrap(view: EditorView, before: string, after: string, placeholder: stri
       const insert = `${before}${text}${after}`
       return {
         changes: { from: range.from, to: range.to, insert },
-        range: EditorSelection.range(range.from + before.length, range.from + before.length + text.length),
+        range: EditorSelection.range(
+          range.from + before.length,
+          range.from + before.length + text.length,
+        ),
       }
     }),
   )
@@ -66,14 +73,20 @@ function prefixLines(view: EditorView, prefix: string | ((i: number) => string),
   const changes: { from: number; to?: number; insert: string }[] = []
   const lines = new Set<number>()
   for (const r of state.selection.ranges) {
-    for (let n = state.doc.lineAt(r.from).number; n <= state.doc.lineAt(r.to).number; n++) lines.add(n)
+    for (let n = state.doc.lineAt(r.from).number; n <= state.doc.lineAt(r.to).number; n++)
+      lines.add(n)
   }
   const all = [...lines].map((n) => state.doc.line(n))
   const allHave = all.every((l) => pattern.test(l.text))
   all.forEach((line, i) => {
     const existing = pattern.exec(line.text)?.[0] ?? ''
     if (allHave) changes.push({ from: line.from, to: line.from + existing.length, insert: '' })
-    else changes.push({ from: line.from, to: line.from + existing.length, insert: typeof prefix === 'string' ? prefix : prefix(i) })
+    else
+      changes.push({
+        from: line.from,
+        to: line.from + existing.length,
+        insert: typeof prefix === 'string' ? prefix : prefix(i),
+      })
   })
   view.dispatch({ changes })
   view.focus()
@@ -109,9 +122,17 @@ const theme = EditorView.theme({
     backgroundColor: 'var(--accent-soft) !important',
   },
   '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--surface-2) 50%, transparent)' },
-  '.cm-tooltip': { backgroundColor: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px', boxShadow: 'var(--shadow-pop)' },
+  '.cm-tooltip': {
+    backgroundColor: 'var(--surface)',
+    border: '1px solid var(--line)',
+    borderRadius: '8px',
+    boxShadow: 'var(--shadow-pop)',
+  },
   '.cm-tooltip-autocomplete > ul > li': { padding: '4px 8px', fontFamily: 'var(--font-sans)' },
-  '.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--accent-soft)', color: 'var(--fg)' },
+  '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+    backgroundColor: 'var(--accent-soft)',
+    color: 'var(--fg)',
+  },
   '.cm-completionDetail': { color: 'var(--muted)', fontStyle: 'normal', marginLeft: '8px' },
   '.cm-placeholder': { color: 'var(--muted)' },
 })
@@ -126,14 +147,25 @@ const highlight = HighlightStyle.define([
   { tag: [tags.link, tags.url], color: 'var(--accent)' },
   { tag: tags.quote, color: 'var(--muted)' },
   { tag: tags.monospace, color: 'var(--ok)' },
-  { tag: [tags.processingInstruction, tags.contentSeparator, tags.list], color: 'var(--muted)' },
+  // Markup characters (#, *, -, >, list markers) are muted; content stays full contrast.
+  { tag: [tags.processingInstruction, tags.contentSeparator], color: 'var(--muted)' },
 ])
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-function ToolButton({ label, shortcut, onClick, children }: { label: string; shortcut?: string; onClick: () => void; children: ReactNode }) {
+function ToolButton({
+  label,
+  shortcut,
+  onClick,
+  children,
+}: {
+  label: string
+  shortcut?: string
+  onClick: () => void
+  children: ReactNode
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -240,24 +272,48 @@ export default function MarkdownEditorImpl({
       )}
     >
       <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface-2/60 px-2 py-1">
-        <div role="toolbar" aria-label="Formatting" className={cn('flex flex-wrap items-center gap-0.5', !showEditor && 'invisible')}>
-          <ToolButton label="Heading 2" onClick={() => exec((v) => prefixLines(v, '## ', /^#{1,6}\s/))}>
+        <div
+          role="toolbar"
+          aria-label="Formatting"
+          className={cn('flex flex-wrap items-center gap-0.5', !showEditor && 'invisible')}
+        >
+          <ToolButton
+            label="Heading 2"
+            onClick={() => exec((v) => prefixLines(v, '## ', /^#{1,6}\s/))}
+          >
             <Heading2Icon />
           </ToolButton>
-          <ToolButton label="Heading 3" onClick={() => exec((v) => prefixLines(v, '### ', /^#{1,6}\s/))}>
+          <ToolButton
+            label="Heading 3"
+            onClick={() => exec((v) => prefixLines(v, '### ', /^#{1,6}\s/))}
+          >
             <Heading3Icon />
           </ToolButton>
           <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
-          <ToolButton label="Bold" shortcut="⌘B" onClick={() => exec((v) => wrap(v, '**', '**', 'bold text'))}>
+          <ToolButton
+            label="Bold"
+            shortcut="⌘B"
+            onClick={() => exec((v) => wrap(v, '**', '**', 'bold text'))}
+          >
             <BoldIcon />
           </ToolButton>
-          <ToolButton label="Italic" shortcut="⌘I" onClick={() => exec((v) => wrap(v, '_', '_', 'italic text'))}>
+          <ToolButton
+            label="Italic"
+            shortcut="⌘I"
+            onClick={() => exec((v) => wrap(v, '_', '_', 'italic text'))}
+          >
             <ItalicIcon />
           </ToolButton>
-          <ToolButton label="Bulleted list" onClick={() => exec((v) => prefixLines(v, '- ', /^[-*+]\s/))}>
+          <ToolButton
+            label="Bulleted list"
+            onClick={() => exec((v) => prefixLines(v, '- ', /^[-*+]\s/))}
+          >
             <ListIcon />
           </ToolButton>
-          <ToolButton label="Numbered list" onClick={() => exec((v) => prefixLines(v, (i) => `${i + 1}. `, /^\d+\.\s/))}>
+          <ToolButton
+            label="Numbered list"
+            onClick={() => exec((v) => prefixLines(v, (i) => `${i + 1}. `, /^\d+\.\s/))}
+          >
             <ListOrderedIcon />
           </ToolButton>
           <ToolButton label="Quote" onClick={() => exec((v) => prefixLines(v, '> ', /^>\s?/))}>
@@ -266,17 +322,28 @@ export default function MarkdownEditorImpl({
           <ToolButton label="Code" onClick={() => exec((v) => wrap(v, '`', '`', 'code'))}>
             <CodeIcon />
           </ToolButton>
-          <ToolButton label="Link" shortcut="⌘K" onClick={() => exec((v) => wrap(v, '[', '](https://)', 'link text'))}>
+          <ToolButton
+            label="Link"
+            shortcut="⌘K"
+            onClick={() => exec((v) => wrap(v, '[', '](https://)', 'link text'))}
+          >
             <LinkIcon />
           </ToolButton>
-          <ToolButton label="Link to a page: [[ID]]" onClick={() => exec((v) => wrap(v, '[[', ']]', 'ITD-000'))}>
-            <span className="font-mono text-xs font-semibold">[[ ]]</span>
+          <ToolButton
+            label="Link to a page: [[ID]]"
+            onClick={() => exec((v) => wrap(v, '[[', ']]', 'ITD-000'))}
+          >
+            <span className="font-mono text-xs font-semibold whitespace-nowrap">[[]]</span>
           </ToolButton>
           <ToolButton label="Table" onClick={() => exec((v) => insertBlock(v, TABLE))}>
             <TableIcon />
           </ToolButton>
         </div>
-        <div className="ml-auto flex rounded-md border border-line bg-surface p-0.5" role="radiogroup" aria-label="Editor view">
+        <div
+          className="ml-auto flex rounded-md border border-line bg-surface p-0.5"
+          role="radiogroup"
+          aria-label="Editor view"
+        >
           {MODES.map((m) => (
             <button
               key={m.value}
@@ -290,7 +357,9 @@ export default function MarkdownEditorImpl({
                 m.value === 'split' && 'hidden lg:inline-flex',
               )}
             >
-              {m.value === 'split' ? <SquareSplitHorizontalIcon className="size-3.5" aria-hidden="true" /> : null}
+              {m.value === 'split' ? (
+                <SquareSplitHorizontalIcon className="size-3.5" aria-hidden="true" />
+              ) : null}
               {m.label}
             </button>
           ))}
@@ -304,14 +373,22 @@ export default function MarkdownEditorImpl({
               value={value}
               onChange={onChange}
               extensions={extensions}
-              basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLineGutter: false, autocompletion: false }}
+              basicSetup={{
+                lineNumbers: false,
+                foldGutter: false,
+                highlightActiveLineGutter: false,
+                autocompletion: false,
+              }}
               minHeight={`${minHeight}px`}
               theme="none"
             />
           </div>
         ) : null}
         {showPreview ? (
-          <div className={cn('min-w-0 overflow-auto px-5 py-4', mode === 'split' && 'max-lg:hidden')} aria-label="Preview">
+          <div
+            className={cn('min-w-0 overflow-auto px-5 py-4', mode === 'split' && 'max-lg:hidden')}
+            aria-label="Preview"
+          >
             {value.trim() ? (
               <MarkdownView markdown={value} lookup={lookup} />
             ) : (
@@ -321,7 +398,8 @@ export default function MarkdownEditorImpl({
         ) : null}
       </div>
       <p className="border-t border-line px-3 py-1.5 text-xs text-muted">
-        Markdown. Type <code className="font-mono">[[</code> to link another page. <kbd className="font-mono">⌘S</kbd> saves.
+        Markdown. Type <code className="font-mono">[[</code> to link another page.{' '}
+        <kbd className="font-mono">⌘S</kbd> saves.
       </p>
     </div>
   )

@@ -11,7 +11,7 @@ export function MetadataStrip({ items, className }: { items: MetadataItem[]; cla
   return (
     <dl
       className={cn(
-        'grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border border-line bg-surface px-4 py-3 lg:grid-cols-6 sm:grid-cols-3',
+        'grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border border-line bg-surface px-4 py-3 sm:grid-cols-3 lg:grid-cols-6',
         className,
       )}
     >

@@ -84,3 +84,54 @@ test.describe('mobile drawer', () => {
     await expectNoViolations(page, 'mobile drawer')
   })
 })
+
+for (const scheme of ['light', 'dark'] as const) {
+  test.describe(`policies, ${scheme} mode`, () => {
+    test.use({ colorScheme: scheme })
+
+    test('editor pages', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen, '/3rdloop/policies')
+      await expect(
+        page.getByRole('table', { name: 'Policies' }).locator('tbody tr').first(),
+      ).toBeVisible()
+      await expectNoViolations(page, 'library')
+      for (const [path, ready] of [
+        ['/3rdloop/policies/doc_itd_006', 'article'],
+        ['/3rdloop/policies/doc_itd_006?tab=history&v=4', 'table'],
+        ['/3rdloop/policies/doc_itd_006?tab=history&v=4&diff=split', 'table'],
+        ['/3rdloop/policies/doc_itd_006?tab=acknowledgements', 'table'],
+        ['/3rdloop/policies/doc_itd_006?tab=controls', 'list'],
+        ['/3rdloop/policies/doc_itd_006?tab=activity', 'list'],
+        ['/3rdloop/policies/doc_itd_015', 'article'],
+        ['/3rdloop/policies/doc_itd_013', 'article'],
+        ['/3rdloop/policies/doc_itd_006/versions/2', 'article'],
+        ['/3rdloop/policies/new', 'list'],
+      ] as const) {
+        await page.goto(path)
+        await expect(page.getByRole(ready).first()).toBeVisible()
+        await expectNoViolations(page, path)
+      }
+      await page.goto('/3rdloop/policies/doc_itd_006/edit')
+      await expect(page.locator('.cm-content')).toBeVisible()
+      await expectNoViolations(page, 'editor')
+    })
+
+    test('approver and staff pages', async ({ page }) => {
+      await signInAs(page, USERS.michael, '/3rdloop/policies/doc_itd_007')
+      await expect(page.getByTestId('workflow-banner')).toBeVisible()
+      await expectNoViolations(page, 'in review')
+      await page.getByRole('button', { name: 'Approve v3' }).click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'approve dialog')
+
+      await signInAs(page, USERS.staff, '/3rdloop/my-policies')
+      await expect(page.getByTestId('policies-to-read')).toBeVisible()
+      await expectNoViolations(page, 'my policies')
+      await page.goto('/3rdloop/policies/doc_itd_008')
+      await expect(
+        page.getByRole('button', { name: 'I have read and understood this policy' }),
+      ).toBeVisible()
+      await expectNoViolations(page, 'acknowledge')
+    })
+  })
+}

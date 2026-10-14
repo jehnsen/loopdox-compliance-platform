@@ -66,7 +66,15 @@ function LineText({ line, pairs }: { line: DiffLine; pairs: Map<DiffLine, Segmen
   return <>{line.text || ' '}</>
 }
 
-function ExpandRow({ count, onClick, colSpan }: { count: number; onClick: () => void; colSpan: number }) {
+function ExpandRow({
+  count,
+  onClick,
+  colSpan,
+}: {
+  count: number
+  onClick: () => void
+  colSpan: number
+}) {
   return (
     <tr>
       <td colSpan={colSpan} className="border-y border-line bg-surface-2 p-0">
@@ -114,11 +122,16 @@ export function DiffView({
       b.type === 'lines' || expanded.has(b.id) ? (
         <Fragment key={i}>{fn(b.lines)}</Fragment>
       ) : (
-        <ExpandRow key={i} count={b.lines.length} onClick={() => expand(b.id)} colSpan={mode === 'split' ? 4 : 3} />
+        <ExpandRow
+          key={i}
+          count={b.lines.length}
+          onClick={() => expand(b.id)}
+          colSpan={mode === 'split' ? 4 : 3}
+        />
       ),
     )
 
-  const num = 'w-10 select-none px-2 text-right align-top text-muted/80'
+  const num = 'w-10 select-none px-2 text-right align-top text-muted'
   return (
     <div className={cn('overflow-hidden rounded-lg border border-line bg-surface', className)}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface-2 px-3 py-2 text-sm">
@@ -132,7 +145,10 @@ export function DiffView({
         <p className="px-3 py-6 text-center text-base text-muted">No differences in the text.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse font-mono text-[13px] leading-5" aria-label={`Changes from ${oldLabel} to ${newLabel}`}>
+          <table
+            className="w-full border-collapse font-mono text-[13px] leading-5"
+            aria-label={`Changes from ${oldLabel} to ${newLabel}`}
+          >
             {mode === 'unified' ? (
               <tbody>
                 {visible((ls) =>
@@ -141,10 +157,18 @@ export function DiffView({
                       <td className={num}>{l.oldNo ?? ''}</td>
                       <td className={num}>{l.newNo ?? ''}</td>
                       <td className="px-2 whitespace-pre-wrap">
-                        <span aria-hidden="true" className={cn('mr-2 inline-block w-2 select-none', l.kind === 'add' ? 'text-ok' : 'text-bad')}>
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            'mr-2 inline-block w-2 select-none',
+                            l.kind === 'add' ? 'text-ok' : 'text-bad',
+                          )}
+                        >
                           {sign[l.kind]}
                         </span>
-                        <span className="sr-only">{l.kind === 'add' ? 'Added: ' : l.kind === 'del' ? 'Removed: ' : ''}</span>
+                        <span className="sr-only">
+                          {l.kind === 'add' ? 'Added: ' : l.kind === 'del' ? 'Removed: ' : ''}
+                        </span>
                         <LineText line={l} pairs={pairs} />
                       </td>
                     </tr>
@@ -156,20 +180,38 @@ export function DiffView({
                 {visible((ls) =>
                   toSplitRows(ls).map((r, i) => (
                     <tr key={i}>
-                      <td className={cn(num, r.left && rowTone[r.left.kind])}>{r.left?.oldNo ?? ''}</td>
-                      <td className={cn('w-1/2 border-r border-line px-2 align-top whitespace-pre-wrap', r.left ? rowTone[r.left.kind] : 'bg-surface-2/50')}>
+                      <td className={cn(num, r.left && rowTone[r.left.kind])}>
+                        {r.left?.oldNo ?? ''}
+                      </td>
+                      <td
+                        className={cn(
+                          'w-1/2 border-r border-line px-2 align-top whitespace-pre-wrap',
+                          r.left ? rowTone[r.left.kind] : 'bg-surface-2/50',
+                        )}
+                      >
                         {r.left ? (
                           <>
-                            {r.left.kind === 'del' ? <span className="sr-only">Removed: </span> : null}
+                            {r.left.kind === 'del' ? (
+                              <span className="sr-only">Removed: </span>
+                            ) : null}
                             <LineText line={r.left} pairs={pairs} />
                           </>
                         ) : null}
                       </td>
-                      <td className={cn(num, r.right && rowTone[r.right.kind])}>{r.right?.newNo ?? ''}</td>
-                      <td className={cn('w-1/2 px-2 align-top whitespace-pre-wrap', r.right ? rowTone[r.right.kind] : 'bg-surface-2/50')}>
+                      <td className={cn(num, r.right && rowTone[r.right.kind])}>
+                        {r.right?.newNo ?? ''}
+                      </td>
+                      <td
+                        className={cn(
+                          'w-1/2 px-2 align-top whitespace-pre-wrap',
+                          r.right ? rowTone[r.right.kind] : 'bg-surface-2/50',
+                        )}
+                      >
                         {r.right ? (
                           <>
-                            {r.right.kind === 'add' ? <span className="sr-only">Added: </span> : null}
+                            {r.right.kind === 'add' ? (
+                              <span className="sr-only">Added: </span>
+                            ) : null}
                             <LineText line={r.right} pairs={pairs} />
                           </>
                         ) : null}

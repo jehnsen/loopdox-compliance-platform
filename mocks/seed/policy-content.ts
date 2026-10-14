@@ -40,7 +40,11 @@ export function clauseAt(clause: Clause, version: number): string | null {
   return clause.text
 }
 
-export function renderPolicyBody(content: PolicyContent, version: number, cycleMonths: number): string {
+export function renderPolicyBody(
+  content: PolicyContent,
+  version: number,
+  cycleMonths: number,
+): string {
   const out: string[] = []
   const push = (s: string) => out.push(s)
   const items = (list: Clause[]) =>
@@ -87,7 +91,8 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
   'ITD-001': {
     purpose:
       'Set out how 3rdLoop creates, approves, publishes, reviews and retires controlled documents so that everyone works from the current approved version.',
-    scope: 'All policies, procedures and standards that 3rdLoop maintains in LoopDox, and anyone who writes, approves or relies on them.',
+    scope:
+      'All policies, procedures and standards that 3rdLoop maintains in LoopDox, and anyone who writes, approves or relies on them.',
     statements: [
       {
         heading: 'Identification',
@@ -104,7 +109,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
             text: 'A new version takes effect on the date it is approved. The previous approved version remains on record.',
             was: { 1: 'A new version takes effect when it is published on the shared drive.' },
           },
-          { text: 'Approvers must not approve a document they wrote unless no other approver is available, and must record why.', since: 3 },
+          {
+            text: 'Approvers must not approve a document they wrote unless no other approver is available, and must record why.',
+            since: 3,
+          },
         ],
       },
       {
@@ -132,7 +140,8 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
   },
 
   'ITD-002': {
-    purpose: 'Describe the conduct expected of directors, officers and staff, and how the company is governed.',
+    purpose:
+      'Describe the conduct expected of directors, officers and staff, and how the company is governed.',
     scope: 'Directors, officers, employees, interns and contractors of 3rdLoop Solutions Corp.',
     statements: [
       {
@@ -140,7 +149,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         items: [
           'Act honestly and in the best interests of clients and the company.',
           'Declare conflicts of interest to the Chairman & CEO before taking part in a related decision.',
-          { text: 'Do not accept gifts or hospitality worth more than ₱5,000 from a client or supplier without written approval.', since: 2 },
+          {
+            text: 'Do not accept gifts or hospitality worth more than ₱5,000 from a client or supplier without written approval.',
+            since: 2,
+          },
         ],
       },
       {
@@ -157,12 +169,17 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
       'Everyone follows this code and reports concerns.',
     ],
     related: ['ITD-008'],
-    versions: [{ summary: 'First issue.', author: M }, { summary: 'Add gifts and hospitality threshold.', author: M }],
+    versions: [
+      { summary: 'First issue.', author: M },
+      { summary: 'Add gifts and hospitality threshold.', author: M },
+    ],
   },
 
   'ITD-003': {
-    purpose: 'Establish how 3rdLoop identifies, assesses, treats and monitors information security and privacy risks.',
-    scope: 'All business processes, systems and suppliers that handle company or client information.',
+    purpose:
+      'Establish how 3rdLoop identifies, assesses, treats and monitors information security and privacy risks.',
+    scope:
+      'All business processes, systems and suppliers that handle company or client information.',
     statements: [
       {
         heading: 'Assessment',
@@ -200,7 +217,8 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
   'ITD-004': {
     purpose:
       'Explain how 3rdLoop processes personal data lawfully, fairly and transparently, in line with the Data Privacy Act of 2012 (RA 10173), its IRR and NPC issuances.',
-    scope: 'All personal data 3rdLoop processes as a personal information controller or processor, in any form.',
+    scope:
+      'All personal data 3rdLoop processes as a personal information controller or processor, in any form.',
     statements: [
       {
         heading: 'Principles',
@@ -217,8 +235,14 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         heading: 'Records and assessments',
         items: [
           'Maintain a record of processing activities for every processing system.',
-          { text: 'Complete a privacy impact assessment before starting any new processing of sensitive personal information.', since: 2 },
-          { text: 'Register qualifying processing systems and the DPO with the NPC and keep the registration current.', since: 3 },
+          {
+            text: 'Complete a privacy impact assessment before starting any new processing of sensitive personal information.',
+            since: 2,
+          },
+          {
+            text: 'Register qualifying processing systems and the DPO with the NPC and keep the registration current.',
+            since: 3,
+          },
         ],
       },
       {
@@ -273,19 +297,27 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         items: [
           'Owners assign a class when information is created; when unsure, use Confidential.',
           'Confidential and Restricted information is encrypted in transit and at rest.',
-          { text: 'Restricted information is never sent by personal email or messaging apps.', since: 2 },
+          {
+            text: 'Restricted information is never sent by personal email or messaging apps.',
+            since: 2,
+          },
         ],
       },
     ],
-    roles: ['Information owners classify their information.', 'Everyone handles information according to its class.'],
+    roles: [
+      'Information owners classify their information.',
+      'Everyone handles information according to its class.',
+    ],
     related: ['ITD-004', 'ITD-006'],
-    versions: [{ summary: 'First issue.' }, { summary: 'Include sensitive personal information in Restricted; ban personal channels.' }],
+    versions: [
+      { summary: 'First issue.' },
+      { summary: 'Include sensitive personal information in Restricted; ban personal channels.' },
+    ],
   },
 
   'ITD-006': {
     purpose: {
-      text:
-        'Set 3rdLoop’s direction and commitments for information security, so that the confidentiality, integrity and availability of company and client information are protected in line with ISO/IEC 27001:2022 and the security requirements of the Data Privacy Act of 2012.',
+      text: 'Set 3rdLoop’s direction and commitments for information security, so that the confidentiality, integrity and availability of company and client information are protected in line with ISO/IEC 27001:2022 and the security requirements of the Data Privacy Act of 2012.',
       was: {
         2: 'Set 3rdLoop’s direction and commitments for information security, so that company and client information is protected.',
       },
@@ -309,7 +341,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
             text: 'Multi-factor authentication is required for all company accounts, including email, source control and cloud consoles.',
             was: { 2: 'Multi-factor authentication is required for administrator accounts.' },
           },
-          { text: 'Access rights are reviewed every quarter, and removed within one working day of a role change or departure.', since: 3 },
+          {
+            text: 'Access rights are reviewed every quarter, and removed within one working day of a role change or departure.',
+            since: 3,
+          },
         ],
       },
       {
@@ -321,7 +356,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
             was: { 3: 'Sensitive data is encrypted.' },
           },
           'Secrets such as API keys and passwords live only in an approved secret store, never in source code or chat.',
-          { text: 'Production data is not copied to development or test environments unless it is anonymised.', since: 4 },
+          {
+            text: 'Production data is not copied to development or test environments unless it is anonymised.',
+            since: 4,
+          },
         ],
       },
       {
@@ -330,7 +368,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
           'Changes to production systems follow the Change Management Policy ([[ITD-011]]).',
           'Security patches rated critical are applied within 14 days; high within 30 days.',
           'Backups are taken and tested according to [[ITD-016]].',
-          { text: 'Security-relevant logs are kept for at least 12 months and protected from tampering.', since: 3 },
+          {
+            text: 'Security-relevant logs are kept for at least 12 months and protected from tampering.',
+            since: 3,
+          },
         ],
       },
       {
@@ -357,18 +398,33 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
       'Managers make sure their teams follow this policy.',
       '**Everyone** completes security awareness training each year and reports incidents without delay.',
     ],
-    related: ['ITD-003', 'ITD-005', 'ITD-007', 'ITD-011', 'ITD-012', 'ITD-013', 'ITD-014', 'ITD-015', 'ITD-016'],
+    related: [
+      'ITD-003',
+      'ITD-005',
+      'ITD-007',
+      'ITD-011',
+      'ITD-012',
+      'ITD-013',
+      'ITD-014',
+      'ITD-015',
+      'ITD-016',
+    ],
     versions: [
       { summary: 'First issue.' },
       { summary: 'Add budget commitment.' },
       { summary: 'MFA for all accounts; quarterly access reviews; log retention.' },
-      { summary: 'Align with ISO/IEC 27001:2022; add suppliers and AI services; ban production data in test.' },
+      {
+        summary:
+          'Align with ISO/IEC 27001:2022; add suppliers and AI services; ban production data in test.',
+      },
     ],
   },
 
   'ITD-007': {
-    purpose: 'Control who can access 3rdLoop and client systems and information, and make sure access stays appropriate.',
-    scope: 'All accounts on company systems, cloud services, repositories and client environments we manage.',
+    purpose:
+      'Control who can access 3rdLoop and client systems and information, and make sure access stays appropriate.',
+    scope:
+      'All accounts on company systems, cloud services, repositories and client environments we manage.',
     statements: [
       {
         heading: 'Granting access',
@@ -386,7 +442,9 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         items: [
           {
             text: 'Multi-factor authentication is mandatory on every account that supports it; phishing-resistant methods (passkeys or security keys) are required for privileged accounts.',
-            was: { 2: 'Multi-factor authentication is mandatory on every account that supports it.' },
+            was: {
+              2: 'Multi-factor authentication is mandatory on every account that supports it.',
+            },
           },
           'Passwords are at least 12 characters and stored in the company password manager.',
         ],
@@ -396,7 +454,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         items: [
           'System owners review all access every quarter and record the result as an access review.',
           'Access is removed within one working day of departure.',
-          { text: 'Access unused for 90 days is disabled automatically where the platform supports it.', since: 3 },
+          {
+            text: 'Access unused for 90 days is disabled automatically where the platform supports it.',
+            since: 3,
+          },
         ],
       },
     ],
@@ -409,13 +470,17 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
     versions: [
       { summary: 'First issue.' },
       { summary: 'Quarterly reviews recorded in LoopDox.' },
-      { summary: 'Phishing-resistant MFA for privileged accounts; time-limited admin access; disable dormant accounts.' },
+      {
+        summary:
+          'Phishing-resistant MFA for privileged accounts; time-limited admin access; disable dormant accounts.',
+      },
     ],
   },
 
   'ITD-008': {
     purpose: 'Set the rules for using company devices, accounts, networks and information.',
-    scope: 'Everyone who uses 3rdLoop devices, accounts or networks, including personal devices used for work.',
+    scope:
+      'Everyone who uses 3rdLoop devices, accounts or networks, including personal devices used for work.',
     statements: [
       {
         heading: 'Devices',
@@ -440,7 +505,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         ],
       },
     ],
-    roles: ['Everyone follows these rules.', 'The CTO maintains the list of approved software and AI tools.'],
+    roles: [
+      'Everyone follows these rules.',
+      'The CTO maintains the list of approved software and AI tools.',
+    ],
     related: ['ITD-005', 'ITD-015'],
     versions: [
       { summary: 'First issue.' },
@@ -450,7 +518,8 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
   },
 
   'ITD-009': {
-    purpose: 'Make sure 3rdLoop knows what information assets it has, who owns them and how they are protected.',
+    purpose:
+      'Make sure 3rdLoop knows what information assets it has, who owns them and how they are protected.',
     scope: 'Hardware, cloud accounts, SaaS subscriptions, domains, repositories and databases.',
     statements: [
       {
@@ -478,7 +547,8 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
 
   'ITD-010': {
     purpose: 'Build security into how 3rdLoop designs, writes, tests and ships software.',
-    scope: 'All software we build for ourselves or for clients, and the pipelines that build and deploy it.',
+    scope:
+      'All software we build for ourselves or for clients, and the pipelines that build and deploy it.',
     statements: [
       {
         heading: 'Design and code',
@@ -499,13 +569,20 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         ],
       },
     ],
-    roles: ['Developers follow this policy.', 'The CTO approves exceptions and owns the pipeline configuration.'],
+    roles: [
+      'Developers follow this policy.',
+      'The CTO approves exceptions and owns the pipeline configuration.',
+    ],
     related: ['ITD-006', 'ITD-011'],
-    versions: [{ summary: 'First draft.' }, { summary: 'Add dependency scanning, as requested in review.' }],
+    versions: [
+      { summary: 'First draft.' },
+      { summary: 'Add dependency scanning, as requested in review.' },
+    ],
   },
 
   'ITD-011': {
-    purpose: 'Make sure changes to production systems are planned, approved, tested and reversible.',
+    purpose:
+      'Make sure changes to production systems are planned, approved, tested and reversible.',
     scope: 'Changes to production infrastructure, applications, configurations and DNS.',
     statements: [
       {
@@ -513,7 +590,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         items: [
           'Every production change goes through a pull request or change record with an approver other than the author.',
           'Each change has a rollback plan.',
-          { text: 'Changes are logged in LoopDox automatically from GitHub and deployments.', since: 2 },
+          {
+            text: 'Changes are logged in LoopDox automatically from GitHub and deployments.',
+            since: 2,
+          },
         ],
       },
       {
@@ -526,14 +606,23 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         ],
       },
     ],
-    roles: ['Change authors plan and document the change.', 'Approvers check risk and rollback.', 'The CTO reviews emergency changes.'],
+    roles: [
+      'Change authors plan and document the change.',
+      'Approvers check risk and rollback.',
+      'The CTO reviews emergency changes.',
+    ],
     related: ['ITD-006', 'ITD-010'],
-    versions: [{ summary: 'First issue.' }, { summary: 'Log changes automatically; emergency review within 2 days.' }],
+    versions: [
+      { summary: 'First issue.' },
+      { summary: 'Log changes automatically; emergency review within 2 days.' },
+    ],
   },
 
   'ITD-012': {
-    purpose: 'Make sure incidents are reported, contained and learned from, and that personal data breaches are notified on time.',
-    scope: 'All security incidents and personal data breaches affecting 3rdLoop or client data we process.',
+    purpose:
+      'Make sure incidents are reported, contained and learned from, and that personal data breaches are notified on time.',
+    scope:
+      'All security incidents and personal data breaches affecting 3rdLoop or client data we process.',
     statements: [
       {
         heading: 'Reporting',
@@ -553,13 +642,18 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
               2: 'When personal data may be involved, the DPO decides whether the NPC must be notified within 72 hours.',
             },
           },
-          { text: 'Clients are told within 24 hours when their data is affected, or sooner if our agreement says so.', since: 2 },
+          {
+            text: 'Clients are told within 24 hours when their data is affected, or sooner if our agreement says so.',
+            since: 2,
+          },
         ],
       },
       {
         heading: 'After the incident',
         since: 3,
-        items: ['Every high or critical incident has a post-incident review within 10 working days, with actions tracked as risks or policy changes.'],
+        items: [
+          'Every high or critical incident has a post-incident review within 10 working days, with actions tracked as risks or policy changes.',
+        ],
       },
     ],
     roles: [
@@ -597,13 +691,17 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         ],
       },
     ],
-    roles: ['The CTO owns continuity planning.', 'Service owners maintain and test their recovery plans.'],
+    roles: [
+      'The CTO owns continuity planning.',
+      'Service owners maintain and test their recovery plans.',
+    ],
     related: ['ITD-012', 'ITD-016'],
     versions: [{ summary: 'First issue.' }, { summary: 'Annual testing; store plans off-system.' }],
   },
 
   'ITD-014': {
-    purpose: 'Manage the risks of suppliers and third parties who access our systems or process data for us.',
+    purpose:
+      'Manage the risks of suppliers and third parties who access our systems or process data for us.',
     scope: 'Suppliers, subcontractors and service providers, including cloud and AI providers.',
     statements: [
       {
@@ -618,16 +716,26 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
       },
       {
         heading: 'During the relationship',
-        items: ['Review critical suppliers every year.', 'Renew or end agreements before they expire.'],
+        items: [
+          'Review critical suppliers every year.',
+          'Renew or end agreements before they expire.',
+        ],
       },
     ],
-    roles: ['The DPO approves agreements involving personal data.', 'Supplier owners manage the relationship and renewals.'],
+    roles: [
+      'The DPO approves agreements involving personal data.',
+      'Supplier owners manage the relationship and renewals.',
+    ],
     related: ['ITD-003', 'ITD-004'],
-    versions: [{ summary: 'First issue.' }, { summary: 'Agreements recorded in LoopDox before sharing data.' }],
+    versions: [
+      { summary: 'First issue.' },
+      { summary: 'Agreements recorded in LoopDox before sharing data.' },
+    ],
   },
 
   'ITD-015': {
-    purpose: 'Allow the responsible use of AI tools while protecting client data, personal data and the company.',
+    purpose:
+      'Allow the responsible use of AI tools while protecting client data, personal data and the company.',
     scope: 'Any use of AI models or AI-powered features with company or client information.',
     statements: [
       {
@@ -650,7 +758,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
         ],
       },
     ],
-    roles: ['The CTO maintains the AI inventory and VisorShield profiles.', 'The DPO reviews AI use cases involving personal data.'],
+    roles: [
+      'The CTO maintains the AI inventory and VisorShield profiles.',
+      'The DPO reviews AI use cases involving personal data.',
+    ],
     related: ['ITD-004', 'ITD-008', 'ITD-014'],
     versions: [
       { summary: 'First issue.' },
@@ -660,14 +771,18 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
   },
 
   'ITD-016': {
-    purpose: 'Make sure information can be recovered when needed and is disposed of securely when no longer needed.',
+    purpose:
+      'Make sure information can be recovered when needed and is disposed of securely when no longer needed.',
     scope: 'Company and client data in all systems, including backups.',
     statements: [
       {
         heading: 'Backup',
         items: [
           'Production databases are backed up daily and kept for 35 days.',
-          { text: 'Backups are encrypted and stored in a separate account from production.', since: 2 },
+          {
+            text: 'Backups are encrypted and stored in a separate account from production.',
+            since: 2,
+          },
           'A restore is tested every quarter.',
         ],
       },
@@ -684,7 +799,10 @@ export const POLICY_CONTENT: Record<string, PolicyContent> = {
     ],
     roles: ['The CTO runs backups and restore tests.', 'Data owners apply the retention schedule.'],
     related: ['ITD-004', 'ITD-013'],
-    versions: [{ summary: 'First issue.' }, { summary: 'Separate backup account; disposal timelines.' }],
+    versions: [
+      { summary: 'First issue.' },
+      { summary: 'Separate backup account; disposal timelines.' },
+    ],
   },
 }
 

@@ -33,7 +33,11 @@ export function FacetFilter({
 }) {
   const count = selected.length
   const summary =
-    count === 0 ? null : count === 1 ? (options.find((o) => o.value === selected[0])?.label ?? '1') : `${count} selected`
+    count === 0
+      ? null
+      : count === 1
+        ? (options.find((o) => o.value === selected[0])?.label ?? '1')
+        : `${count} selected`
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -66,7 +70,11 @@ export function FacetFilter({
         {count ? (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem checked={false} onCheckedChange={() => onChange([])} className="text-muted">
+            <DropdownMenuCheckboxItem
+              checked={false}
+              onCheckedChange={() => onChange([])}
+              className="text-muted"
+            >
               Clear
             </DropdownMenuCheckboxItem>
           </>

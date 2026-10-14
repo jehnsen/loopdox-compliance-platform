@@ -50,26 +50,174 @@ const J = 'usr_jehnsen'
 const M = 'usr_michael'
 
 const PLANS: Plan[] = [
-  { docId: 'ITD-001', owner: J, cycle: 12, classification: 'internal', versions: 3, approved: 3, status: 'approved', approvedDaysAgo: 120 },
-  { docId: 'ITD-002', owner: M, cycle: 24, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 200 },
-  { docId: 'ITD-003', owner: J, cycle: 12, classification: 'internal', versions: 3, approved: 3, status: 'approved', approvedDaysAgo: 345 },
-  { docId: 'ITD-004', owner: J, cycle: 12, classification: 'internal', versions: 4, approved: 4, status: 'approved', approvedDaysAgo: 60 },
-  { docId: 'ITD-005', owner: J, cycle: 24, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 150 },
-  { docId: 'ITD-006', owner: J, cycle: 12, classification: 'internal', versions: 4, approved: 4, status: 'approved', approvedDaysAgo: 45 },
-  { docId: 'ITD-007', owner: J, cycle: 12, classification: 'internal', versions: 3, approved: 2, status: 'in_review', approvedDaysAgo: 210, laterVersionsHoursAgo: [6], submittedHoursAgo: 5 },
-  { docId: 'ITD-008', owner: J, cycle: 12, classification: 'internal', versions: 3, approved: 3, status: 'approved', approvedDaysAgo: 2 },
-  { docId: 'ITD-009', owner: J, cycle: 24, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 90 },
   {
-    docId: 'ITD-010', owner: J, cycle: 12, classification: 'internal', versions: 2, approved: null, status: 'draft',
-    laterVersionsHoursAgo: [240, 40],
-    rejected: { version: 1, hoursAgo: 190, note: 'Please add a requirement for dependency vulnerability scanning before this goes out.' },
+    docId: 'ITD-001',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 3,
+    approved: 3,
+    status: 'approved',
+    approvedDaysAgo: 120,
   },
-  { docId: 'ITD-011', owner: J, cycle: 12, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 100 },
-  { docId: 'ITD-012', owner: J, cycle: 12, classification: 'internal', versions: 3, approved: 3, status: 'approved', approvedDaysAgo: 30 },
-  { docId: 'ITD-013', owner: J, cycle: 12, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 390 },
-  { docId: 'ITD-014', owner: J, cycle: 12, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 170 },
-  { docId: 'ITD-015', owner: J, cycle: 6, classification: 'internal', versions: 3, approved: 2, status: 'draft', approvedDaysAgo: 80, laterVersionsHoursAgo: [72] },
-  { docId: 'ITD-016', owner: J, cycle: 12, classification: 'internal', versions: 2, approved: 2, status: 'approved', approvedDaysAgo: 75 },
+  {
+    docId: 'ITD-002',
+    owner: M,
+    cycle: 24,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 200,
+  },
+  {
+    docId: 'ITD-003',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 3,
+    approved: 3,
+    status: 'approved',
+    approvedDaysAgo: 345,
+  },
+  {
+    docId: 'ITD-004',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 4,
+    approved: 4,
+    status: 'approved',
+    approvedDaysAgo: 60,
+  },
+  {
+    docId: 'ITD-005',
+    owner: J,
+    cycle: 24,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 150,
+  },
+  {
+    docId: 'ITD-006',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 4,
+    approved: 4,
+    status: 'approved',
+    approvedDaysAgo: 45,
+  },
+  {
+    docId: 'ITD-007',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 3,
+    approved: 2,
+    status: 'in_review',
+    approvedDaysAgo: 210,
+    laterVersionsHoursAgo: [6],
+    submittedHoursAgo: 5,
+  },
+  {
+    docId: 'ITD-008',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 3,
+    approved: 3,
+    status: 'approved',
+    approvedDaysAgo: 2,
+  },
+  {
+    docId: 'ITD-009',
+    owner: J,
+    cycle: 24,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 90,
+  },
+  {
+    docId: 'ITD-010',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 2,
+    approved: null,
+    status: 'draft',
+    laterVersionsHoursAgo: [240, 40],
+    rejected: {
+      version: 1,
+      hoursAgo: 190,
+      note: 'Please add a requirement for dependency vulnerability scanning before this goes out.',
+    },
+  },
+  {
+    docId: 'ITD-011',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 100,
+  },
+  {
+    docId: 'ITD-012',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 3,
+    approved: 3,
+    status: 'approved',
+    approvedDaysAgo: 30,
+  },
+  {
+    docId: 'ITD-013',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 390,
+  },
+  {
+    docId: 'ITD-014',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 170,
+  },
+  {
+    docId: 'ITD-015',
+    owner: J,
+    cycle: 6,
+    classification: 'internal',
+    versions: 3,
+    approved: 2,
+    status: 'draft',
+    approvedDaysAgo: 80,
+    laterVersionsHoursAgo: [72],
+  },
+  {
+    docId: 'ITD-016',
+    owner: J,
+    cycle: 12,
+    classification: 'internal',
+    versions: 2,
+    approved: 2,
+    status: 'approved',
+    approvedDaysAgo: 75,
+  },
 ]
 
 /** Staff have not yet acknowledged these approved versions. */
@@ -105,7 +253,14 @@ class Builder {
     return `${prefix}_seed_${this.seq}`
   }
 
-  audit(orgId: string, actor: string, action: string, doc: { id: string; docId: string; title: string }, at: number, details: Record<string, unknown> = {}) {
+  audit(
+    orgId: string,
+    actor: string,
+    action: string,
+    doc: { id: string; docId: string; title: string },
+    at: number,
+    details: Record<string, unknown> = {},
+  ) {
     this.out.audit.push({
       id: this.id('aud'),
       orgId,
@@ -120,12 +275,44 @@ class Builder {
     })
   }
 
-  workflow(orgId: string, doc: Document, version: number, type: StoredWorkflow['type'], actor: string, at: number, note: string | null = null) {
-    this.out.workflow.push({ id: this.id('wfe'), documentId: doc.id, version, type, actor, note, at: this.iso(at) })
-    this.audit(orgId, actor, `document.${type === 'submit' ? 'submitted' : type === 'approve' ? 'approved' : type === 'reject' ? 'changes_requested' : 'retired'}`, doc, at, { version, ...(note ? { note } : {}) })
+  workflow(
+    orgId: string,
+    doc: Document,
+    version: number,
+    type: StoredWorkflow['type'],
+    actor: string,
+    at: number,
+    note: string | null = null,
+  ) {
+    this.out.workflow.push({
+      id: this.id('wfe'),
+      documentId: doc.id,
+      version,
+      type,
+      actor,
+      note,
+      at: this.iso(at),
+    })
+    this.audit(
+      orgId,
+      actor,
+      `document.${type === 'submit' ? 'submitted' : type === 'approve' ? 'approved' : type === 'reject' ? 'changes_requested' : 'retired'}`,
+      doc,
+      at,
+      { version, ...(note ? { note } : {}) },
+    )
   }
 
-  version(orgId: string, doc: Document, n: number, title: string, body: string, summary: string, author: string, at: number) {
+  version(
+    orgId: string,
+    doc: Document,
+    n: number,
+    title: string,
+    body: string,
+    summary: string,
+    author: string,
+    at: number,
+  ) {
     this.out.versions.push({
       id: `ver_${doc.id.slice(4)}_${n}`,
       orgId,
@@ -139,11 +326,22 @@ class Builder {
       author,
       createdAt: this.iso(at),
     })
-    this.audit(orgId, author, n === 1 ? 'document.created' : 'document.edited', doc, at, { version: n })
+    this.audit(orgId, author, n === 1 ? 'document.created' : 'document.edited', doc, at, {
+      version: n,
+    })
   }
 }
 
-function baseDoc(orgId: string, id: string, docId: string, title: string, parentId: string | null, order: number, owner: string, createdAt: string): Document {
+function baseDoc(
+  orgId: string,
+  id: string,
+  docId: string,
+  title: string,
+  parentId: string | null,
+  order: number,
+  owner: string,
+  createdAt: string,
+): Document {
   return {
     id,
     orgId,
@@ -215,7 +413,16 @@ function seed3rdLoop(b: Builder, now: number): void {
     }
     for (const h of plan.laterVersionsHoursAgo ?? []) created.push(now - h * HOUR)
 
-    const doc = baseDoc(org, docIdToInternal(plan.docId), plan.docId, meta.title, parentId, order, plan.owner, b.iso(created[0] ?? now))
+    const doc = baseDoc(
+      org,
+      docIdToInternal(plan.docId),
+      plan.docId,
+      meta.title,
+      parentId,
+      order,
+      plan.owner,
+      b.iso(created[0] ?? now),
+    )
     doc.reviewCycleMonths = plan.cycle
     doc.classification = plan.classification
     b.out.documents.push(doc)
@@ -224,7 +431,16 @@ function seed3rdLoop(b: Builder, now: number): void {
       const at = created[v - 1] ?? now
       const spec = content.versions[v - 1]
       const author = spec?.author ?? plan.owner
-      b.version(org, doc, v, meta.title, renderPolicyBody(content, v, plan.cycle), spec?.summary ?? 'Update.', author, at)
+      b.version(
+        org,
+        doc,
+        v,
+        meta.title,
+        renderPolicyBody(content, v, plan.cycle),
+        spec?.summary ?? 'Update.',
+        author,
+        at,
+      )
       doc.updatedAt = b.iso(at)
       doc.updatedBy = author
       doc.currentVersion = v
@@ -238,7 +454,15 @@ function seed3rdLoop(b: Builder, now: number): void {
       }
       if (plan.rejected?.version === v) {
         b.workflow(org, doc, v, 'submit', author, now - (plan.rejected.hoursAgo + 20) * HOUR)
-        b.workflow(org, doc, v, 'reject', M, now - plan.rejected.hoursAgo * HOUR, plan.rejected.note)
+        b.workflow(
+          org,
+          doc,
+          v,
+          'reject',
+          M,
+          now - plan.rejected.hoursAgo * HOUR,
+          plan.rejected.note,
+        )
       }
       doc.version += 1
     }
@@ -252,7 +476,13 @@ function seed3rdLoop(b: Builder, now: number): void {
       const ackAt = Math.min(Date.parse(doc.approvedAt) + 20 * HOUR, now - HOUR)
       const users = [J, M, ...(STAFF_PENDING.has(plan.docId) ? [] : ['usr_staff'])]
       for (const userId of users) {
-        b.out.acknowledgements.push({ id: b.id('ack'), documentId: doc.id, version: doc.approvedVersion, userId, at: b.iso(ackAt) })
+        b.out.acknowledgements.push({
+          id: b.id('ack'),
+          documentId: doc.id,
+          version: doc.approvedVersion,
+          userId,
+          at: b.iso(ackAt),
+        })
       }
     }
   }
@@ -312,13 +542,23 @@ What to do when patient information may have been lost, disclosed or accessed wi
 function seedClinic(b: Builder, now: number): void {
   const org = 'org_sample_clinic'
   const L = 'usr_clinic_dpo'
-  const make = (docId: string, title: string, order: number, bodies: [string, string][], approvedVersion: number | null, approvedDaysAgo: number) => {
+  const make = (
+    docId: string,
+    title: string,
+    order: number,
+    bodies: [string, string][],
+    approvedVersion: number | null,
+    approvedDaysAgo: number,
+  ) => {
     const firstAt = now - (approvedDaysAgo + 100 * bodies.length) * DAY
     const doc = baseDoc(org, docIdToInternal(docId), docId, title, null, order, L, b.iso(firstAt))
     b.out.documents.push(doc)
     bodies.forEach(([body, summary], i) => {
       const v = i + 1
-      const at = approvedVersion === null ? now - (5 - i) * DAY : now - (approvedDaysAgo + (bodies.length - v) * 100 + 2) * DAY
+      const at =
+        approvedVersion === null
+          ? now - (5 - i) * DAY
+          : now - (approvedDaysAgo + (bodies.length - v) * 100 + 2) * DAY
       b.version(org, doc, v, title, body, summary, L, at)
       doc.currentVersion = v
       doc.updatedAt = b.iso(at)
@@ -332,15 +572,51 @@ function seedClinic(b: Builder, now: number): void {
     })
     doc.status = approvedVersion === null ? 'draft' : 'approved'
     if (doc.approvedVersion && doc.approvedAt) {
-      b.out.acknowledgements.push({ id: b.id('ack'), documentId: doc.id, version: doc.approvedVersion, userId: L, at: b.iso(Date.parse(doc.approvedAt) + HOUR) })
+      b.out.acknowledgements.push({
+        id: b.id('ack'),
+        documentId: doc.id,
+        version: doc.approvedVersion,
+        userId: L,
+        at: b.iso(Date.parse(doc.approvedAt) + HOUR),
+      })
       if (docId === 'CLN-001') {
-        b.out.acknowledgements.push({ id: b.id('ack'), documentId: doc.id, version: doc.approvedVersion, userId: 'usr_clinic_staff', at: b.iso(Date.parse(doc.approvedAt) + DAY) })
+        b.out.acknowledgements.push({
+          id: b.id('ack'),
+          documentId: doc.id,
+          version: doc.approvedVersion,
+          userId: 'usr_clinic_staff',
+          at: b.iso(Date.parse(doc.approvedAt) + DAY),
+        })
       }
     }
   }
-  make('CLN-001', 'Data Privacy Policy', 0, [[CLINIC_PRIVACY_V1, 'First issue.'], [CLINIC_PRIVACY_V2, 'Require MFA; add breach reporting.']], 2, 355)
-  make('CLN-002', 'Patient Records Handling Procedure', 1, [[CLINIC_RECORDS, 'First draft.']], null, 0)
-  make('CLN-003', 'Personal Data Breach Response Procedure', 2, [[CLINIC_BREACH, 'First issue.']], 1, 100)
+  make(
+    'CLN-001',
+    'Data Privacy Policy',
+    0,
+    [
+      [CLINIC_PRIVACY_V1, 'First issue.'],
+      [CLINIC_PRIVACY_V2, 'Require MFA; add breach reporting.'],
+    ],
+    2,
+    355,
+  )
+  make(
+    'CLN-002',
+    'Patient Records Handling Procedure',
+    1,
+    [[CLINIC_RECORDS, 'First draft.']],
+    null,
+    0,
+  )
+  make(
+    'CLN-003',
+    'Personal Data Breach Response Procedure',
+    2,
+    [[CLINIC_BREACH, 'First issue.']],
+    1,
+    100,
+  )
 }
 
 export function seedDocuments(now: Date): DocumentSeed {

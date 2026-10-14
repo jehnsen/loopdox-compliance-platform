@@ -23,14 +23,17 @@ const ACTION_LABELS: Record<string, (d: Record<string, unknown>) => string> = {
   'document.restored': (d) => `restored v${String(d.restoredFrom)} as v${String(d.version)}`,
   'document.retired': () => 'retired this page',
   'document.acknowledged': (d) => `acknowledged v${String(d.version)}`,
-  'document.ack_reminder_sent': (d) => `sent acknowledgement reminders to ${String(d.count)} people`,
+  'document.ack_reminder_sent': (d) =>
+    `sent acknowledgement reminders to ${String(d.count)} people`,
   'document.moved': () => 'moved this page',
   'document.deleted': () => 'deleted this page',
 }
 
 export function describeAction(event: AuditEvent): string {
   const fn = ACTION_LABELS[event.action]
-  return fn ? fn(event.details) : event.action.split('.').at(-1)?.replace(/_/g, ' ') ?? event.action
+  return fn
+    ? fn(event.details)
+    : (event.action.split('.').at(-1)?.replace(/_/g, ' ') ?? event.action)
 }
 
 /** Audit events for one record, newest first. */
@@ -39,7 +42,8 @@ export function ActivityFeed({ targetType, targetId }: { targetType: string; tar
   const query = { targetType, targetId, pageSize: 100 }
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.auditEvents(org, query),
-    queryFn: ({ signal }) => api.get<ListResponse<AuditEvent>>(orgPath(org, '/audit-events'), { query, signal }),
+    queryFn: ({ signal }) =>
+      api.get<ListResponse<AuditEvent>>(orgPath(org, '/audit-events'), { query, signal }),
   })
   if (isLoading) {
     return (
@@ -52,7 +56,13 @@ export function ActivityFeed({ targetType, targetId }: { targetType: string; tar
   }
   if (isError) return <ErrorState title="Couldn’t load activity" onRetry={() => void refetch()} />
   if (!data?.items.length) {
-    return <EmptyState icon={HistoryIcon} title="No activity yet" body="Edits, approvals and acknowledgements appear here." />
+    return (
+      <EmptyState
+        icon={HistoryIcon}
+        title="No activity yet"
+        body="Edits, approvals and acknowledgements appear here."
+      />
+    )
   }
   return (
     <ol className="flex flex-col" aria-label="Activity">

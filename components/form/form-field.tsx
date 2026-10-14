@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label'
 /**
  * Label + control + hint + error, wired for screen readers. The single child
  * control receives id, aria-invalid and aria-describedby.
+ *
+ * For composite controls whose root isn't the focusable element (a Radix Select),
+ * pass `id` and put that id on the trigger yourself; the child is then not cloned.
  */
 export function FormField({
   label,
@@ -14,6 +17,7 @@ export function FormField({
   error,
   required,
   className,
+  id: explicitId,
   children,
 }: {
   label: ReactNode
@@ -21,20 +25,23 @@ export function FormField({
   error?: string
   required?: boolean
   className?: string
+  id?: string
   children: ReactElement<Record<string, unknown>>
 }) {
-  const id = useId()
+  const generated = useId()
+  const id = explicitId ?? generated
   const hintId = hint ? `${id}-hint` : undefined
   const errorId = error ? `${id}-error` : undefined
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
-  const control = isValidElement(children)
-    ? cloneElement(children, {
-        id,
-        'aria-invalid': error ? true : undefined,
-        'aria-describedby': describedBy,
-        'aria-required': required || undefined,
-      })
-    : children
+  const control =
+    !explicitId && isValidElement(children)
+      ? cloneElement(children, {
+          id,
+          'aria-invalid': error ? true : undefined,
+          'aria-describedby': describedBy,
+          'aria-required': required || undefined,
+        })
+      : children
   return (
     <div className={cn('grid gap-1.5', className)}>
       <Label htmlFor={id}>

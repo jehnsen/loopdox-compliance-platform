@@ -12,7 +12,8 @@ export const TEMPLATES: PolicyTemplate[] = [
   {
     key: 'policy',
     name: 'Policy',
-    description: 'A rule the organisation commits to: purpose, scope, statements, roles, compliance and review.',
+    description:
+      'A rule the organisation commits to: purpose, scope, statements, roles, compliance and review.',
     requiresApproval: true,
     body: `## 1. Purpose
 

@@ -10,7 +10,7 @@ import { ReportIncidentIcon, visibleNav } from '@/lib/nav'
 import { useSession } from '@/components/providers/session-provider'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PoliciesToRead } from '@/features/overview/policies-to-read'
 
 /**
  * Overview. The full dashboard (tiles, needs-attention list, activity) arrives in
@@ -52,23 +52,7 @@ export function OverviewPage() {
         }
       />
 
-      {staffOnly ? (
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>Policies to read</CardTitle>
-              <CardDescription>
-                Approved policies you need to read and acknowledge appear here.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="secondary">
-              <Link href={`/${org.slug}/my-policies`}>Open My policies</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
+      {staffOnly && hasFeature(tier, 'policies') ? <PoliciesToRead /> : null}
 
       {isAuditorOnly(session) ? (
         <p className="rounded-md border border-line bg-surface px-4 py-3 text-base">

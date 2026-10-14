@@ -3,7 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useMemo, useState, type DragEvent } from 'react'
-import { ArrowDownIcon, ArrowUpIcon, ChevronRightIcon, GripVerticalIcon, MoreHorizontalIcon } from 'lucide-react'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronRightIcon,
+  GripVerticalIcon,
+  MoreHorizontalIcon,
+} from 'lucide-react'
 import type { DocumentLookupItem } from '@/lib/api/types'
 import { cn } from '@/lib/utils/cn'
 import { useOrgSlug } from '@/components/providers/session-provider'
@@ -25,7 +31,8 @@ export function buildChildren(items: DocumentLookupItem[]): Children {
     list.push(it)
     map.set(it.parentId, list)
   }
-  for (const list of map.values()) list.sort((a, b) => a.order - b.order || a.docId.localeCompare(b.docId))
+  for (const list of map.values())
+    list.sort((a, b) => a.order - b.order || a.docId.localeCompare(b.docId))
   // Orphans (parent not visible to this user) show at the top level.
   const ids = new Set(items.map((i) => i.id))
   for (const [parent, list] of [...map.entries()]) {
@@ -115,7 +122,7 @@ export function PolicyTree({
     const list = children.get(parentId) ?? []
     if (!list.length) return null
     return (
-      <ul className="flex flex-col" role={depth === 0 ? undefined : 'group'}>
+      <ul className="flex flex-col">
         {list.map((item, index) => {
           const kids = children.get(item.id) ?? []
           const open = !collapsed.has(item.id)
@@ -124,7 +131,10 @@ export function PolicyTree({
           return (
             <li key={item.id} className="relative">
               {drop?.id === item.id && drop.position === 'before' ? (
-                <span className="absolute inset-x-1 top-0 h-0.5 rounded-full bg-accent" aria-hidden="true" />
+                <span
+                  className="absolute inset-x-1 top-0 h-0.5 rounded-full bg-accent"
+                  aria-hidden="true"
+                />
               ) : null}
               <div
                 draggable={canReorder}
@@ -160,13 +170,18 @@ export function PolicyTree({
                     aria-label={`${open ? 'Collapse' : 'Expand'} ${item.title}`}
                     className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted hover:text-fg"
                   >
-                    <ChevronRightIcon className={cn('size-3.5 transition-transform', open && 'rotate-90')} />
+                    <ChevronRightIcon
+                      className={cn('size-3.5 transition-transform', open && 'rotate-90')}
+                    />
                   </button>
                 ) : (
                   <span className="size-5 shrink-0" aria-hidden="true" />
                 )}
                 {canReorder ? (
-                  <GripVerticalIcon className="size-3.5 shrink-0 cursor-grab text-muted/50 group-hover:text-muted" aria-hidden="true" />
+                  <GripVerticalIcon
+                    className="size-3.5 shrink-0 cursor-grab text-muted/50 group-hover:text-muted"
+                    aria-hidden="true"
+                  />
                 ) : null}
                 <StatusDot status={item.status} reviewState={item.reviewState} />
                 <Link
@@ -176,7 +191,9 @@ export function PolicyTree({
                   draggable={false}
                 >
                   <span className="shrink-0 font-mono text-xs text-muted">{item.docId}</span>
-                  <span className={cn('truncate', depth === 0 && kids.length > 0 && 'font-medium')}>{item.title}</span>
+                  <span className={cn('truncate', depth === 0 && kids.length > 0 && 'font-medium')}>
+                    {item.title}
+                  </span>
                 </Link>
                 {canReorder ? (
                   <DropdownMenu>
@@ -190,7 +207,10 @@ export function PolicyTree({
                       <DropdownMenuItem disabled={index === 0} onSelect={() => step(item, -1)}>
                         <ArrowUpIcon /> Move up
                       </DropdownMenuItem>
-                      <DropdownMenuItem disabled={index === list.length - 1} onSelect={() => step(item, 1)}>
+                      <DropdownMenuItem
+                        disabled={index === list.length - 1}
+                        onSelect={() => step(item, 1)}
+                      >
                         <ArrowDownIcon /> Move down
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -198,7 +218,10 @@ export function PolicyTree({
                 ) : null}
               </div>
               {drop?.id === item.id && drop.position === 'after' ? (
-                <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden="true" />
+                <span
+                  className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-accent"
+                  aria-hidden="true"
+                />
               ) : null}
               {kids.length && open ? renderLevel(item.id, depth + 1) : null}
             </li>

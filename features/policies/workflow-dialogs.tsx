@@ -44,7 +44,11 @@ function NoteField({
     <div className="grid gap-1.5">
       <Label htmlFor={id}>
         {label}
-        {required ? <span className="text-bad"> *</span> : <span className="font-normal text-muted"> (optional)</span>}
+        {required ? (
+          <span className="text-bad"> *</span>
+        ) : (
+          <span className="font-normal text-muted"> (optional)</span>
+        )}
       </Label>
       <Textarea
         id={id}
@@ -111,12 +115,7 @@ export function WorkflowDialogs({
     )
   }
 
-  const dialog = (
-    title: string,
-    description: ReactNode,
-    body: ReactNode,
-    confirm: ReactNode,
-  ) => (
+  const dialog = (title: string, description: ReactNode, body: ReactNode, confirm: ReactNode) => (
     <Dialog open onOpenChange={(o) => (o ? null : close())}>
       <DialogContent>
         <DialogHeader>
@@ -139,8 +138,17 @@ export function WorkflowDialogs({
       return dialog(
         `Submit v${v} for review`,
         'Approvers are notified and can approve it or request changes. You can keep editing; saving again withdraws it from review.',
-        <NoteField label="Note for the approver" value={note} onChange={setNote} hint="For example, what changed and why." />,
-        <Button variant="primary" disabled={workflow.isPending} onClick={() => act('submit', `Submitted v${v} for review`)}>
+        <NoteField
+          label="Note for the approver"
+          value={note}
+          onChange={setNote}
+          hint="For example, what changed and why."
+        />,
+        <Button
+          variant="primary"
+          disabled={workflow.isPending}
+          onClick={() => act('submit', `Submitted v${v} for review`)}
+        >
           Submit v{v} for review
         </Button>,
       )
@@ -148,7 +156,8 @@ export function WorkflowDialogs({
       return dialog(
         `Approve v${v}`,
         <>
-          v{v} becomes the approved version on record and takes effect today. Staff are asked to acknowledge it.
+          v{v} becomes the approved version on record and takes effect today. Staff are asked to
+          acknowledge it.
         </>,
         <>
           <dl className="grid grid-cols-2 gap-3 rounded-md border border-line bg-surface-2/50 px-3 py-2">
@@ -166,7 +175,11 @@ export function WorkflowDialogs({
           </dl>
           <NoteField label="Approval note" value={note} onChange={setNote} />
         </>,
-        <Button variant="primary" disabled={workflow.isPending} onClick={() => act('approve', `Approved v${v}`)}>
+        <Button
+          variant="primary"
+          disabled={workflow.isPending}
+          onClick={() => act('approve', `Approved v${v}`)}
+        >
           Approve v{v}
         </Button>,
       )
@@ -184,7 +197,11 @@ export function WorkflowDialogs({
           required
           error={noteError}
         />,
-        <Button variant="primary" disabled={workflow.isPending} onClick={() => act('reject', 'Sent back with your note')}>
+        <Button
+          variant="primary"
+          disabled={workflow.isPending}
+          onClick={() => act('reject', 'Sent back with your note')}
+        >
           Request changes
         </Button>,
       )
@@ -193,7 +210,11 @@ export function WorkflowDialogs({
         `Retire ${doc.docId}`,
         'Retired documents stay readable for reference but are no longer in force, need no review, and can’t be edited.',
         <NoteField label="Reason" value={note} onChange={setNote} />,
-        <Button variant="danger" disabled={workflow.isPending} onClick={() => act('retire', `Retired ${doc.docId}`)}>
+        <Button
+          variant="danger"
+          disabled={workflow.isPending}
+          onClick={() => act('retire', `Retired ${doc.docId}`)}
+        >
           Retire {doc.docId}
         </Button>,
       )

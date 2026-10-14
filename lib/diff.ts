@@ -27,7 +27,9 @@ export function lineDiff(oldText: string, newText: string): DiffLine[] {
   const out: DiffLine[] = []
   let o = 1
   let n = 1
-  for (const part of diffLines(oldText, newText)) {
+  // A missing final newline shouldn't make the last line look changed.
+  const norm = (t: string) => (t === '' || t.endsWith('\n') ? t : `${t}\n`)
+  for (const part of diffLines(norm(oldText), norm(newText))) {
     for (const text of splitLines(part.value)) {
       if (part.added) out.push({ kind: 'add', text, oldNo: null, newNo: n++ })
       else if (part.removed) out.push({ kind: 'del', text, oldNo: o++, newNo: null })

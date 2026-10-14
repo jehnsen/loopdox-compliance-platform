@@ -28,7 +28,11 @@ export interface ListParamsOptions {
 
 export const PAGE_SIZES = [10, 25, 50, 100] as const
 
-export function useListParams({ filterKeys, defaultPageSize = 25, prefix = '' }: ListParamsOptions) {
+export function useListParams({
+  filterKeys,
+  defaultPageSize = 25,
+  prefix = '',
+}: ListParamsOptions) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -55,7 +59,11 @@ export function useListParams({ filterKeys, defaultPageSize = 25, prefix = '' }:
   const setParams = useCallback(
     (patch: Partial<ListParams>) => {
       const next = new URLSearchParams(searchParams.toString())
-      const merged: ListParams = { ...params, ...patch, filters: { ...params.filters, ...patch.filters } }
+      const merged: ListParams = {
+        ...params,
+        ...patch,
+        filters: { ...params.filters, ...patch.filters },
+      }
       if (!('page' in patch)) merged.page = 1
       const put = (key: string, value: string | null) => {
         if (value) next.set(k(key), value)
@@ -66,7 +74,8 @@ export function useListParams({ filterKeys, defaultPageSize = 25, prefix = '' }:
       put('sort', merged.sort)
       put('q', merged.q.trim() || null)
       put('hide', merged.hidden.length ? merged.hidden.join(',') : null)
-      for (const key of filterKeys) put(key, merged.filters[key]?.length ? merged.filters[key].join(',') : null)
+      for (const key of filterKeys)
+        put(key, merged.filters[key]?.length ? merged.filters[key].join(',') : null)
       const qs = next.toString()
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
     },
@@ -82,7 +91,8 @@ export function useListParams({ filterKeys, defaultPageSize = 25, prefix = '' }:
     return q
   }, [params])
 
-  const activeFilterCount = Object.values(params.filters).filter((v) => v.length).length + (params.q ? 1 : 0)
+  const activeFilterCount =
+    Object.values(params.filters).filter((v) => v.length).length + (params.q ? 1 : 0)
 
   return { params, setParams, query, activeFilterCount }
 }

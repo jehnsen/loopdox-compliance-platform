@@ -2,7 +2,7 @@
 
 The frontend defines this contract and the FastAPI backend implements it. TypeScript types for every request and response are in [`lib/api/types.ts`](../lib/api/types.ts), which is the source of truth. The in-repo mock API (`mocks/`) implements the same contract and is the reference behaviour.
 
-> **Status:** covers the endpoints the frontend uses up to **M1 (Foundation)**. Each milestone adds its endpoints here.
+> **Status:** covers the endpoints the frontend uses up to **M2 (Policies)**. Each milestone adds its endpoints here.
 
 ---
 
@@ -237,3 +237,146 @@ Matches in `snippet` are wrapped in `«` `»`; the client turns them into highli
 `q` searches action, target label, actor. Filters: `action` (prefix match), `actorId`. Default sort `-at`.
 
 `AuditEvent`: `{ id, orgId, actor: { id, name } | null, action, targetType, targetId, targetLabel, at, ip?, details }`
+
+---
+
+## Documents (policies) — M2
+
+Feature `policies`. Every route below returns 403 `feature_not_in_plan` for tiers without it.
+
+### Visibility rule (backend must enforce)
+
+- Callers **with** `policies.read_drafts` see every document as stored.
+- Callers **without** it (staff, auditors) see only documents with `approvedVersion !== null` and `status !== "retired"`, **projected**: `status` = `"approved"`, `currentVersion` = `approvedVersion`, `content` = the approved version, `workflow` = `[]`. Anything else returns **404**. Version endpoints return 404 for versions above the approved one.
+
+### Types
+
+`Document`, `DocumentSummary`, `DocumentDetail`, `DocumentVersion`, `DocumentVersionSummary`, `WorkflowEvent`, `DocumentLookupItem`, `Acknowledgement` and `AcknowledgementStatus` are in `lib/api/types.ts`. In short:
+
+- `Document.version` is the **concurrency counter**; `currentVersion` / `approvedVersion` are **content version numbers**.
+- `DocumentSummary` adds `ownerName`, `approvedByName`, `updatedByName`, `childCount` and `reviewState` (`ok | due_soon | overdue | null`). `due_soon` means within the org's `reviewReminderLeadDays` of `nextReviewDate`; `null` means not approved or retired.
+- `DocumentDetail` adds `content` (the version this caller reads), `children` (visible children, ordered), `workflow` (newest first; empty for read-only callers), `acknowledgedByMe` and `acknowledgedAt`.
+- Dates: `effectiveDate` and `nextReviewDate` are `YYYY-MM-DD` in the tenant's timezone.
+
+### `GET /orgs/:org/documents` → `ListResponse<DocumentSummary>`
+
+Permission `policies.read`. `q` searches docId, title and owner name. Default sort `docId`. Sortable: any field, e.g. `title`, `status`, `ownerName`, `currentVersion`, `nextReviewDate`, `updatedAt`, `order`.
+
+| Filter      | Values                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `status`    | `draft,in_review,approved,retired`                                                                                                               |
+| `owner`     | user IDs                                                                                                                                         |
+| `review`    | `overdue,due_soon,ok`                                                                                                                            |
+| `parent`    | parent document IDs, or `root`                                                                                                                   |
+| `framework` | `ISO27001:2022,DPA,NPC,internal`: documents linked to a control in that framework                                                                |
+| `ack`       | `pending` or `done`, for the **caller**: approved documents requiring approval that the caller has / hasn't acknowledged at the approved version |
+
+### `GET /orgs/:org/documents/lookup` → `{ items: DocumentLookupItem[] }`
+
+Every document the caller can see: `{ id, docId, title, status, parentId, order, reviewState }`, ordered by `order`. Used for the tree, `[[ID]]` links and parent pickers.
+
+### `GET /orgs/:org/documents/next-id?prefix=` → `{ docId }`
+
+Permission `policies.edit`. The next free number for `prefix` (default: the most common prefix, ignoring `SEC`), e.g. `ITD-017`.
+
+### `GET /orgs/:org/documents/export` → `text/csv`
+
+Same filters as the list. `Content-Disposition: attachment; filename="policies-<org>-<date>.csv"`. Columns: ID, Title, Status, Owner, Version, Approved version, Effective, Next review, Last edited.
+
+### `POST /orgs/:org/documents` → 201 `DocumentDetail`
+
+Permission `policies.edit`. Body `CreateDocumentRequest`:
+
+```json
+{
+  "docId": "ITD-017",
+  "title": "Remote Work Policy",
+  "parentId": "doc_sec_security",
+  "owner": "usr_jehnsen",
+  "reviewCycleMonths": 12,
+  "requiresApproval": true,
+  "classification": "internal",
+  "bodyMarkdown": "## 1. Purpose\n…",
+  "changeSummary": "First draft."
+}
+```
+
+Creates version 1 (`type: "create"`) with status `draft`. If `requiresApproval` is false, the document is published straight away (see approve). Validation (400 `fields`):
+
+- `docId`: pattern `^[A-Z][A-Z0-9]{1,9}-\d{3,4}$` (uppercased), unique in the org.
+- `title`: 3–160 characters.
+- `parentId`: must exist.
+- `owner`: an active, non-auditor member.
+- `reviewCycleMonths`: 6, 12 or 24.
+- `changeSummary`: 3–300 characters.
+- `bodyMarkdown`: up to 200,000 characters.
+
+### `GET /orgs/:org/documents/:id` → `DocumentDetail`
+
+`:id` is the document ID or the human `docId`.
+
+### `PATCH /orgs/:org/documents/:id` → `DocumentDetail`
+
+Permission `policies.edit`. Body `UpdateDocumentRequest`: any create fields plus **`ifVersion`** (required).
+
+- 409 `version_conflict` when `ifVersion` ≠ `version`.
+- 422 when the document is retired.
+- If `title` or `bodyMarkdown` differ from the current version, a new version (`type: "edit"`) is created, and `changeSummary` is required (400 otherwise). Status then becomes `draft` (from `approved` or `in_review`), or the new version is published straight away when `requiresApproval` is false.
+- Metadata-only changes don't create a version or change status. Changing `reviewCycleMonths` recalculates `nextReviewDate` from `effectiveDate`.
+- Every successful PATCH increments `version`.
+
+### `DELETE /orgs/:org/documents/:id` → 204
+
+Permission `policies.edit`. Only when `approvedVersion === null` and the document has no children; otherwise 422.
+
+### `GET /orgs/:org/documents/:id/versions` → `ListResponse<DocumentVersionSummary>`
+
+Default sort `-version`. No bodies.
+
+### `GET /orgs/:org/documents/:id/versions/:v` → `DocumentVersion`
+
+Includes `bodyMarkdown`. Versions are immutable.
+
+### Workflow
+
+All return the updated `DocumentDetail`. Each accepts an optional `ifVersion` (409 on mismatch) and records a `WorkflowEvent` plus an audit event. Invalid transitions return 422.
+
+| Endpoint             | Permission         | Body                                         | Transition and effects                                                                                                                                                                                                                                             |
+| -------------------- | ------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST …/:id/submit`  | `policies.edit`    | `{ note? }`                                  | `draft` → `in_review`. Requires `requiresApproval`. Notifies approvers (`approval_requested`).                                                                                                                                                                     |
+| `POST …/:id/approve` | `policies.approve` | `{ note? }`                                  | `in_review` → `approved`. Sets `approvedVersion = currentVersion`, `approvedBy`, `approvedAt`, **`effectiveDate` = today in the tenant timezone**, **`nextReviewDate` = effectiveDate + reviewCycleMonths**. Notifies the owner and everyone who must acknowledge. |
+| `POST …/:id/reject`  | `policies.approve` | `{ note }` (**required**, 3–2000 characters) | `in_review` → `draft`. Notifies the owner with the note.                                                                                                                                                                                                           |
+| `POST …/:id/restore` | `policies.edit`    | `{ version, ifVersion, changeSummary? }`     | Copies that version's title and body into a new version (`type: "restore"`, `restoredFrom`), then follows the same status rule as PATCH. 422 if `version` is already current.                                                                                      |
+| `POST …/:id/retire`  | `policies.approve` | `{ note? }`                                  | any → `retired`.                                                                                                                                                                                                                                                   |
+
+### `POST /orgs/:org/documents/reorder` → 204
+
+Permission `policies.edit`. Body `{ parentId: string | null, orderedIds: string[] }`. Moves the listed documents under `parentId` and sets `order` to their index. Doesn't change `version`. 400 if a document would end up under itself.
+
+### Acknowledgements
+
+| Endpoint                             | Permission                            | Response                                                                                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET …/:id/acknowledgements`         | `policies.read_drafts`                | `AcknowledgementStatus`: `{ documentId, version, required, acknowledged, members: [{ userId, name, title, roles, acknowledgedAt }] }`. `version` is the approved version (null if none or retired). `members` = active members with `policies.acknowledge`, pending first. |
+| `POST …/:id/acknowledgements`        | `policies.acknowledge`                | 201 `Acknowledgement`. Records the caller's acknowledgement of the **approved** version. Idempotent. 422 if there is no approved version.                                                                                                                                  |
+| `POST …/:id/acknowledgements/remind` | `policies.edit` or `policies.approve` | `{ reminded: number }`. Notifies pending members (`deadline_review`).                                                                                                                                                                                                      |
+
+---
+
+## Controls (read) — M2
+
+Feature `evidence`, permission `evidence.read`. Writes and evidence arrive in M6.
+
+### `GET /orgs/:org/controls` → `ListResponse<Control>`
+
+Filters: `framework`, `status` (`passing|failing|no_evidence|not_applicable`), `documentId`. `q` searches reference, title and description. Default sort `reference`.
+
+`Control`: `{ framework, reference, title, description, documentIds, owner, evidenceFrequency, status }` plus the base entity fields.
+
+### `GET /orgs/:org/controls/:id` → `Control`
+
+---
+
+## Search additions (M2)
+
+`GET /orgs/:org/search?q=` includes a `document` group ("Policies"). It matches docId, title and the text of the version the caller can read; results link to `/:org/policies/:id`.

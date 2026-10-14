@@ -31,17 +31,21 @@ export function useDocuments(org: string, query: ListQuery) {
 export function useDocumentLookup(org: string, enabled = true) {
   return useQuery({
     queryKey: qk.documents.lookup(org),
-    queryFn: ({ signal }) => api.get<{ items: DocumentLookupItem[] }>(docs(org, '/lookup'), { signal }),
+    queryFn: ({ signal }) =>
+      api.get<{ items: DocumentLookupItem[] }>(docs(org, '/lookup'), { signal }),
     select: (d) => d.items,
     staleTime: 60_000,
     enabled,
   })
 }
 
-export function useDocument(org: string, id: string) {
+/** `fresh` refetches on mount even if cached, for editors that send `ifVersion`. */
+export function useDocument(org: string, id: string, { fresh = false }: { fresh?: boolean } = {}) {
   return useQuery({
     queryKey: qk.documents.detail(org, id),
-    queryFn: ({ signal }) => api.get<DocumentDetail>(docs(org, `/${encodeURIComponent(id)}`), { signal }),
+    queryFn: ({ signal }) =>
+      api.get<DocumentDetail>(docs(org, `/${encodeURIComponent(id)}`), { signal }),
+    refetchOnMount: fresh ? 'always' : true,
   })
 }
 
@@ -59,7 +63,8 @@ export function useDocumentVersions(org: string, id: string) {
 export function useDocumentVersion(org: string, id: string, version: number | null) {
   return useQuery({
     queryKey: qk.documents.version(org, id, version ?? 0),
-    queryFn: ({ signal }) => api.get<DocumentVersion>(docs(org, `/${id}/versions/${version}`), { signal }),
+    queryFn: ({ signal }) =>
+      api.get<DocumentVersion>(docs(org, `/${id}/versions/${version}`), { signal }),
     enabled: version !== null && version > 0,
     staleTime: Infinity, // versions are immutable
   })
@@ -68,7 +73,8 @@ export function useDocumentVersion(org: string, id: string, version: number | nu
 export function useAcknowledgements(org: string, id: string, enabled = true) {
   return useQuery({
     queryKey: qk.documents.acknowledgements(org, id),
-    queryFn: ({ signal }) => api.get<AcknowledgementStatus>(docs(org, `/${id}/acknowledgements`), { signal }),
+    queryFn: ({ signal }) =>
+      api.get<AcknowledgementStatus>(docs(org, `/${id}/acknowledgements`), { signal }),
     enabled,
   })
 }
@@ -86,7 +92,8 @@ export function useLinkedControls(org: string, documentId: string, enabled: bool
   const query = { documentId, pageSize: 200 }
   return useQuery({
     queryKey: qk.controls(org, query),
-    queryFn: ({ signal }) => api.get<ListResponse<Control>>(orgPath(org, '/controls'), { query, signal }),
+    queryFn: ({ signal }) =>
+      api.get<ListResponse<Control>>(orgPath(org, '/controls'), { query, signal }),
     enabled,
   })
 }
@@ -115,7 +122,8 @@ export function useCreateDocument(org: string) {
 export function useUpdateDocument(org: string, id: string) {
   const done = useInvalidateDocuments(org)
   return useMutation({
-    mutationFn: (body: UpdateDocumentRequest) => api.patch<DocumentDetail>(docs(org, `/${id}`), body),
+    mutationFn: (body: UpdateDocumentRequest) =>
+      api.patch<DocumentDetail>(docs(org, `/${id}`), body),
     onSuccess: done,
   })
 }
@@ -125,8 +133,19 @@ type WorkflowAction = 'submit' | 'approve' | 'reject' | 'retire'
 export function useDocumentWorkflow(org: string, id: string) {
   const done = useInvalidateDocuments(org)
   return useMutation({
-    mutationFn: ({ action, note, ifVersion }: { action: WorkflowAction; note?: string; ifVersion?: number }) =>
-      api.post<DocumentDetail>(docs(org, `/${id}/${action}`), { note: note || undefined, ifVersion }),
+    mutationFn: ({
+      action,
+      note,
+      ifVersion,
+    }: {
+      action: WorkflowAction
+      note?: string
+      ifVersion?: number
+    }) =>
+      api.post<DocumentDetail>(docs(org, `/${id}/${action}`), {
+        note: note || undefined,
+        ifVersion,
+      }),
     onSuccess: done,
   })
 }

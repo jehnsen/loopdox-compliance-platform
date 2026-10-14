@@ -404,7 +404,9 @@ export interface CreateDocumentRequest {
 }
 
 /** Content edits (title/body) create a new version and need a changeSummary. */
-export interface UpdateDocumentRequest extends Partial<Omit<CreateDocumentRequest, 'changeSummary'>> {
+export interface UpdateDocumentRequest extends Partial<
+  Omit<CreateDocumentRequest, 'changeSummary'>
+> {
   ifVersion: number
   changeSummary?: string
 }

@@ -8,6 +8,7 @@ import type {
   ListResponse,
   TokenPair,
 } from '@/lib/api/types'
+import { addMonthsToDate, todayInTz } from '@/lib/utils/dates'
 import { dispatchMock } from '@/mocks/dispatch'
 import { resetDb } from '@/mocks/store'
 
@@ -23,7 +24,10 @@ async function call<T = unknown>(token: string, method: string, path: string, bo
   const res = await dispatchMock(
     new Request(`http://mock.local/api/v1/orgs/3rdloop${path}`, {
       method,
-      headers: { authorization: `Bearer ${token}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
       body: body ? JSON.stringify(body) : undefined,
     }),
   )
@@ -68,7 +72,11 @@ const newPolicy = {
 
 describe('documents: visibility', () => {
   it('shows staff only approved versions', async () => {
-    const list = await call<ListResponse<DocumentSummary>>(t.staff, 'GET', '/documents?pageSize=200')
+    const list = await call<ListResponse<DocumentSummary>>(
+      t.staff,
+      'GET',
+      '/documents?pageSize=200',
+    )
     const ids = list.body.items.map((d) => d.docId)
     expect(ids).not.toContain('ITD-010') // never approved
     const itd015 = list.body.items.find((d) => d.docId === 'ITD-015')
@@ -84,14 +92,26 @@ describe('documents: visibility', () => {
     const d = await call<DocumentDetail>(t.editor, 'GET', '/documents/ITD-015')
     expect(d.body).toMatchObject({ status: 'draft', currentVersion: 3, approvedVersion: 2 })
     expect(d.body.content?.version).toBe(3)
-    const overdue = await call<ListResponse<DocumentSummary>>(t.editor, 'GET', '/documents?review=overdue')
+    const overdue = await call<ListResponse<DocumentSummary>>(
+      t.editor,
+      'GET',
+      '/documents?review=overdue',
+    )
     expect(overdue.body.items.map((x) => x.docId)).toEqual(['ITD-013'])
-    const dueSoon = await call<ListResponse<DocumentSummary>>(t.editor, 'GET', '/documents?review=due_soon')
+    const dueSoon = await call<ListResponse<DocumentSummary>>(
+      t.editor,
+      'GET',
+      '/documents?review=due_soon',
+    )
     expect(dueSoon.body.items.map((x) => x.docId)).toEqual(['ITD-003'])
   })
 
   it('filters by framework through linked controls', async () => {
-    const npc = await call<ListResponse<DocumentSummary>>(t.editor, 'GET', '/documents?framework=NPC')
+    const npc = await call<ListResponse<DocumentSummary>>(
+      t.editor,
+      'GET',
+      '/documents?framework=NPC',
+    )
     expect(npc.body.items.map((x) => x.docId).sort()).toEqual(['ITD-004', 'ITD-012'])
   })
 })
@@ -102,7 +122,11 @@ describe('documents: M2 acceptance path', () => {
     const created = await call<DocumentDetail>(t.editor, 'POST', '/documents', newPolicy)
     expect(created.status).toBe(201)
     const id = created.body.id
-    expect(created.body).toMatchObject({ status: 'draft', currentVersion: 1, approvedVersion: null })
+    expect(created.body).toMatchObject({
+      status: 'draft',
+      currentVersion: 1,
+      approvedVersion: null,
+    })
 
     // Staff can't see it yet; approver can't approve a draft.
     expect((await call(t.staff, 'GET', `/documents/${id}`)).status).toBe(404)
@@ -113,27 +137,54 @@ describe('documents: M2 acceptance path', () => {
     expect(submitted.body.status).toBe('in_review')
     expect((await call(t.editor, 'POST', `/documents/${id}/approve`, {})).status).toBe(200) // admin can approve too
     // ...but use a fresh doc for the approver path:
-    const second = await call<DocumentDetail>(t.editor, 'POST', '/documents', { ...newPolicy, docId: 'ITD-018' })
+    const second = await call<DocumentDetail>(t.editor, 'POST', '/documents', {
+      ...newPolicy,
+      docId: 'ITD-018',
+    })
     await call(t.editor, 'POST', `/documents/${second.body.id}/submit`, {})
-    expect((await call(t.staff, 'POST', `/documents/${second.body.id}/approve`, {})).status).toBe(403)
-    const approved = await call<DocumentDetail>(t.approver, 'POST', `/documents/${second.body.id}/approve`, {})
+    expect((await call(t.staff, 'POST', `/documents/${second.body.id}/approve`, {})).status).toBe(
+      403,
+    )
+    const approved = await call<DocumentDetail>(
+      t.approver,
+      'POST',
+      `/documents/${second.body.id}/approve`,
+      {},
+    )
     expect(approved.body).toMatchObject({
       status: 'approved',
       approvedVersion: 1,
-      effectiveDate: '2026-10-14',
-      nextReviewDate: '2027-10-14',
+      // Handlers use the real clock; dates are calendar days in the tenant timezone.
+      effectiveDate: todayInTz('Asia/Manila'),
+      nextReviewDate: addMonthsToDate(todayInTz('Asia/Manila'), 12),
       approvedBy: 'usr_michael',
     })
 
     // Staff acknowledge
-    const pendingBefore = await call<ListResponse<DocumentSummary>>(t.staff, 'GET', '/documents?ack=pending&pageSize=200')
+    const pendingBefore = await call<ListResponse<DocumentSummary>>(
+      t.staff,
+      'GET',
+      '/documents?ack=pending&pageSize=200',
+    )
     expect(pendingBefore.body.items.map((d) => d.docId)).toContain('ITD-018')
-    expect((await call(t.staff, 'POST', `/documents/${second.body.id}/acknowledgements`)).status).toBe(201)
-    const pendingAfter = await call<ListResponse<DocumentSummary>>(t.staff, 'GET', '/documents?ack=pending&pageSize=200')
+    expect(
+      (await call(t.staff, 'POST', `/documents/${second.body.id}/acknowledgements`)).status,
+    ).toBe(201)
+    const pendingAfter = await call<ListResponse<DocumentSummary>>(
+      t.staff,
+      'GET',
+      '/documents?ack=pending&pageSize=200',
+    )
     expect(pendingAfter.body.items.map((d) => d.docId)).not.toContain('ITD-018')
-    const acks = await call<AcknowledgementStatus>(t.editor, 'GET', `/documents/${second.body.id}/acknowledgements`)
+    const acks = await call<AcknowledgementStatus>(
+      t.editor,
+      'GET',
+      `/documents/${second.body.id}/acknowledgements`,
+    )
     expect(acks.body.members.find((m) => m.userId === 'usr_staff')?.acknowledgedAt).toBeTruthy()
-    expect((await call(t.auditor, 'POST', `/documents/${second.body.id}/acknowledgements`)).status).toBe(403)
+    expect(
+      (await call(t.auditor, 'POST', `/documents/${second.body.id}/acknowledgements`)).status,
+    ).toBe(403)
 
     // A new edit returns it to draft; v1 stays approved and visible to staff.
     const edited = await call<DocumentDetail>(t.editor, 'PATCH', `/documents/${second.body.id}`, {
@@ -146,33 +197,58 @@ describe('documents: M2 acceptance path', () => {
     expect(staffView.body.content?.bodyMarkdown).toContain('Work safely from home.')
 
     // History has both versions with real content
-    const v1 = await call<DocumentVersion>(t.editor, 'GET', `/documents/${second.body.id}/versions/1`)
-    const v2 = await call<DocumentVersion>(t.editor, 'GET', `/documents/${second.body.id}/versions/2`)
+    const v1 = await call<DocumentVersion>(
+      t.editor,
+      'GET',
+      `/documents/${second.body.id}/versions/1`,
+    )
+    const v2 = await call<DocumentVersion>(
+      t.editor,
+      'GET',
+      `/documents/${second.body.id}/versions/2`,
+    )
     expect(v1.body.bodyMarkdown).not.toEqual(v2.body.bodyMarkdown)
 
     // Restore v1 creates v3
-    const restored = await call<DocumentDetail>(t.editor, 'POST', `/documents/${second.body.id}/restore`, {
-      version: 1,
-      ifVersion: edited.body.version,
-    })
+    const restored = await call<DocumentDetail>(
+      t.editor,
+      'POST',
+      `/documents/${second.body.id}/restore`,
+      {
+        version: 1,
+        ifVersion: edited.body.version,
+      },
+    )
     expect(restored.body).toMatchObject({ currentVersion: 3, status: 'draft' })
-    expect(restored.body.content).toMatchObject({ type: 'restore', restoredFrom: 1, bodyMarkdown: v1.body.bodyMarkdown })
+    expect(restored.body.content).toMatchObject({
+      type: 'restore',
+      restoredFrom: 1,
+      bodyMarkdown: v1.body.bodyMarkdown,
+    })
   })
 })
 
 describe('documents: validation and concurrency', () => {
   it('rejects a duplicate document ID with a field error', async () => {
-    const res = await call<{ error: { fields: Record<string, string> } }>(t.editor, 'POST', '/documents', {
-      ...newPolicy,
-      docId: 'ITD-006',
-    })
+    const res = await call<{ error: { fields: Record<string, string> } }>(
+      t.editor,
+      'POST',
+      '/documents',
+      {
+        ...newPolicy,
+        docId: 'ITD-006',
+      },
+    )
     expect(res.status).toBe(400)
     expect(res.body.error.fields.docId).toContain('Information Security Policy')
   })
 
   it('returns 409 for a stale ifVersion', async () => {
     const d = await call<DocumentDetail>(t.editor, 'GET', '/documents/ITD-006')
-    await call(t.editor, 'PATCH', '/documents/ITD-006', { ifVersion: d.body.version, owner: 'usr_michael' })
+    await call(t.editor, 'PATCH', '/documents/ITD-006', {
+      ifVersion: d.body.version,
+      owner: 'usr_michael',
+    })
     const stale = await call<{ error: { code: string } }>(t.editor, 'PATCH', '/documents/ITD-006', {
       ifVersion: d.body.version,
       bodyMarkdown: 'x',
@@ -184,11 +260,23 @@ describe('documents: validation and concurrency', () => {
 
   it('requires a change summary for content edits and a note to request changes', async () => {
     const d = await call<DocumentDetail>(t.editor, 'GET', '/documents/ITD-006')
-    expect((await call(t.editor, 'PATCH', '/documents/ITD-006', { ifVersion: d.body.version, bodyMarkdown: 'x' })).status).toBe(400)
+    expect(
+      (
+        await call(t.editor, 'PATCH', '/documents/ITD-006', {
+          ifVersion: d.body.version,
+          bodyMarkdown: 'x',
+        })
+      ).status,
+    ).toBe(400)
     expect((await call(t.approver, 'POST', '/documents/ITD-007/reject', {})).status).toBe(400)
-    const rejected = await call<DocumentDetail>(t.approver, 'POST', '/documents/ITD-007/reject', { note: 'Say how long admin access lasts.' })
+    const rejected = await call<DocumentDetail>(t.approver, 'POST', '/documents/ITD-007/reject', {
+      note: 'Say how long admin access lasts.',
+    })
     expect(rejected.body.status).toBe('draft')
-    expect(rejected.body.workflow[0]).toMatchObject({ type: 'reject', note: 'Say how long admin access lasts.' })
+    expect(rejected.body.workflow[0]).toMatchObject({
+      type: 'reject',
+      note: 'Say how long admin access lasts.',
+    })
   })
 
   it('suggests the next ID and only deletes never-approved drafts', async () => {
@@ -203,7 +291,11 @@ describe('documents: validation and concurrency', () => {
       parentId: 'doc_sec_security',
       orderedIds: ['doc_itd_010', 'doc_itd_006', 'doc_itd_007', 'doc_itd_008', 'doc_itd_009'],
     })
-    const list = await call<ListResponse<DocumentSummary>>(t.editor, 'GET', '/documents?parent=doc_sec_security&sort=order')
+    const list = await call<ListResponse<DocumentSummary>>(
+      t.editor,
+      'GET',
+      '/documents?parent=doc_sec_security&sort=order',
+    )
     expect(list.body.items[0]?.docId).toBe('ITD-010')
   })
 })

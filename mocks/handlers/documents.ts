@@ -23,7 +23,16 @@ import {
 import { addMonthsToDate, daysUntil, todayInTz } from '@/lib/utils/dates'
 import { nextSeq } from '@/lib/utils/ids'
 import { audit } from '@/mocks/audit'
-import { checkVersion, forbidden, HttpError, json, noContent, notFound, paginate, parse } from '@/mocks/http'
+import {
+  checkVersion,
+  forbidden,
+  HttpError,
+  json,
+  noContent,
+  notFound,
+  paginate,
+  parse,
+} from '@/mocks/http'
 import { searchSources } from '@/mocks/handlers/search'
 import { orgRoute, type OrgCtx, type RouteDef } from '@/mocks/router'
 import { commit, newId, type MockDB, type MockDocumentVersion } from '@/mocks/store'
@@ -94,7 +103,11 @@ function findVisible(ctx: OrgCtx, idOrDocId: string): { stored: Document; doc: D
   return { stored, doc }
 }
 
-function storedVersion(ctx: OrgCtx, documentId: string, version: number): MockDocumentVersion | undefined {
+function storedVersion(
+  ctx: OrgCtx,
+  documentId: string,
+  version: number,
+): MockDocumentVersion | undefined {
   return ctx.db.documentVersions.find((v) => v.documentId === documentId && v.version === version)
 }
 
@@ -123,7 +136,8 @@ function detail(ctx: OrgCtx, stored: Document): DocumentDetail {
   const content = contentVersion ? storedVersion(ctx, doc.id, contentVersion) : undefined
   const ack = doc.approvedVersion
     ? ctx.db.acknowledgements.find(
-        (a) => a.documentId === doc.id && a.version === doc.approvedVersion && a.userId === ctx.user.id,
+        (a) =>
+          a.documentId === doc.id && a.version === doc.approvedVersion && a.userId === ctx.user.id,
       )
     : undefined
   return {
@@ -164,7 +178,12 @@ function markApproved(ctx: OrgCtx, doc: Document): void {
   doc.nextReviewDate = addMonthsToDate(effective, doc.reviewCycleMonths)
 }
 
-function addWorkflow(ctx: OrgCtx, doc: Document, type: WorkflowEvent['type'], note: string | null): void {
+function addWorkflow(
+  ctx: OrgCtx,
+  doc: Document,
+  type: WorkflowEvent['type'],
+  note: string | null,
+): void {
   ctx.db.workflowEvents.push({
     id: newId('wfe'),
     documentId: doc.id,
@@ -176,7 +195,14 @@ function addWorkflow(ctx: OrgCtx, doc: Document, type: WorkflowEvent['type'], no
   })
 }
 
-function notify(ctx: OrgCtx, userIds: string[], type: NotificationType, title: string, body: string, href: string): void {
+function notify(
+  ctx: OrgCtx,
+  userIds: string[],
+  type: NotificationType,
+  title: string,
+  body: string,
+  href: string,
+): void {
   for (const userId of new Set(userIds)) {
     if (userId === ctx.user.id) continue
     ctx.db.notifications.push({
@@ -229,7 +255,9 @@ function assertParent(ctx: OrgCtx, parentId: string | null, selfId?: string): vo
   if (parentId === null) return
   const docs = orgDocs(ctx)
   if (!docs.some((d) => d.id === parentId)) {
-    throw new HttpError(400, 'validation_error', 'The parent page doesn’t exist.', { parentId: 'Choose an existing page.' })
+    throw new HttpError(400, 'validation_error', 'The parent page doesn’t exist.', {
+      parentId: 'Choose an existing page.',
+    })
   }
   // A page can't move under itself or one of its descendants.
   let cursor: string | null = parentId
@@ -244,10 +272,17 @@ function assertParent(ctx: OrgCtx, parentId: string | null, selfId?: string): vo
 }
 
 function assertOwner(ctx: OrgCtx, owner: string): void {
-  if (!activeMembers(ctx).some((m) => m.userId === owner && !m.roles.every((r) => r === 'auditor'))) {
-    throw new HttpError(400, 'validation_error', 'The owner must be a member of this organisation.', {
-      owner: 'Choose a current member.',
-    })
+  if (
+    !activeMembers(ctx).some((m) => m.userId === owner && !m.roles.every((r) => r === 'auditor'))
+  ) {
+    throw new HttpError(
+      400,
+      'validation_error',
+      'The owner must be a member of this organisation.',
+      {
+        owner: 'Choose a current member.',
+      },
+    )
   }
 }
 
@@ -328,177 +363,261 @@ export const documentRoutes: RouteDef[] = [
     json(paginate(listDocs(ctx), ctx.query, listOptions(ctx))),
   ),
 
-  orgRoute('GET', '/documents/lookup', { permission: 'policies.read', feature: 'policies' }, (ctx) => {
-    const items: DocumentLookupItem[] = visibleDocs(ctx)
-      .map((d) => ({
-        id: d.id,
-        docId: d.docId,
-        title: d.title,
-        status: d.status,
-        parentId: d.parentId,
-        order: d.order,
-        reviewState: reviewStateOf(ctx, d),
-      }))
-      .sort((a, b) => a.order - b.order || a.docId.localeCompare(b.docId))
-    return json({ items })
-  }),
+  orgRoute(
+    'GET',
+    '/documents/lookup',
+    { permission: 'policies.read', feature: 'policies' },
+    (ctx) => {
+      const items: DocumentLookupItem[] = visibleDocs(ctx)
+        .map((d) => ({
+          id: d.id,
+          docId: d.docId,
+          title: d.title,
+          status: d.status,
+          parentId: d.parentId,
+          order: d.order,
+          reviewState: reviewStateOf(ctx, d),
+        }))
+        .sort((a, b) => a.order - b.order || a.docId.localeCompare(b.docId))
+      return json({ items })
+    },
+  ),
 
-  orgRoute('GET', '/documents/next-id', { permission: 'policies.edit', feature: 'policies' }, (ctx) => {
-    const ids = orgDocs(ctx).map((d) => d.docId)
-    let prefix = ctx.query.get('prefix')?.toUpperCase()
-    if (!prefix) {
-      // Most common prefix among existing documents, ignoring section pages.
-      const counts = new Map<string, number>()
-      for (const id of ids) {
-        const p = id.split('-')[0] ?? ''
-        if (p !== 'SEC') counts.set(p, (counts.get(p) ?? 0) + 1)
+  orgRoute(
+    'GET',
+    '/documents/next-id',
+    { permission: 'policies.edit', feature: 'policies' },
+    (ctx) => {
+      const ids = orgDocs(ctx).map((d) => d.docId)
+      let prefix = ctx.query.get('prefix')?.toUpperCase()
+      if (!prefix) {
+        // Most common prefix among existing documents, ignoring section pages.
+        const counts = new Map<string, number>()
+        for (const id of ids) {
+          const p = id.split('-')[0] ?? ''
+          if (p !== 'SEC') counts.set(p, (counts.get(p) ?? 0) + 1)
+        }
+        prefix = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'DOC'
       }
-      prefix = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'DOC'
-    }
-    return json({ docId: `${prefix}-${String(nextSeq(ids, prefix)).padStart(3, '0')}` })
-  }),
+      return json({ docId: `${prefix}-${String(nextSeq(ids, prefix)).padStart(3, '0')}` })
+    },
+  ),
 
-  orgRoute('GET', '/documents/export', { permission: 'policies.read', feature: 'policies' }, (ctx) => {
-    const all = paginate(listDocs(ctx), new URLSearchParams([...ctx.query, ['page', '1'], ['pageSize', '200']]), listOptions(ctx))
-    const header = ['ID', 'Title', 'Status', 'Owner', 'Version', 'Approved version', 'Effective', 'Next review', 'Last edited']
-    const rows = all.items.map((d) =>
-      [d.docId, d.title, d.status, d.ownerName, d.currentVersion, d.approvedVersion, d.effectiveDate, d.nextReviewDate, d.updatedAt]
-        .map(csvCell)
-        .join(','),
-    )
-    const csv = [header.join(','), ...rows].join('\n')
-    return new Response(csv, {
-      headers: {
-        'content-type': 'text/csv; charset=utf-8',
-        'content-disposition': `attachment; filename="policies-${ctx.org.slug}-${today(ctx)}.csv"`,
-      },
-    })
-  }),
+  orgRoute(
+    'GET',
+    '/documents/export',
+    { permission: 'policies.read', feature: 'policies' },
+    (ctx) => {
+      const all = paginate(
+        listDocs(ctx),
+        new URLSearchParams([...ctx.query, ['page', '1'], ['pageSize', '200']]),
+        listOptions(ctx),
+      )
+      const header = [
+        'ID',
+        'Title',
+        'Status',
+        'Owner',
+        'Version',
+        'Approved version',
+        'Effective',
+        'Next review',
+        'Last edited',
+      ]
+      const rows = all.items.map((d) =>
+        [
+          d.docId,
+          d.title,
+          d.status,
+          d.ownerName,
+          d.currentVersion,
+          d.approvedVersion,
+          d.effectiveDate,
+          d.nextReviewDate,
+          d.updatedAt,
+        ]
+          .map(csvCell)
+          .join(','),
+      )
+      const csv = [header.join(','), ...rows].join('\n')
+      return new Response(csv, {
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': `attachment; filename="policies-${ctx.org.slug}-${today(ctx)}.csv"`,
+        },
+      })
+    },
+  ),
 
-  orgRoute('POST', '/documents', { permission: 'policies.edit', feature: 'policies' }, async (ctx) => {
-    const input = parse(createDocumentSchema, await ctx.json())
-    assertDocIdFree(ctx, input.docId)
-    assertParent(ctx, input.parentId)
-    assertOwner(ctx, input.owner)
-    const siblings = orgDocs(ctx).filter((d) => d.parentId === input.parentId)
-    const at = ctx.now.toISOString()
-    const doc: Document = {
-      id: newId('doc'),
-      orgId: ctx.org.id,
-      createdAt: at,
-      updatedAt: at,
-      createdBy: ctx.user.id,
-      updatedBy: ctx.user.id,
-      version: 1,
-      docId: input.docId,
-      title: input.title,
-      parentId: input.parentId,
-      order: siblings.length ? Math.max(...siblings.map((s) => s.order)) + 1 : 0,
-      owner: input.owner,
-      requiresApproval: input.requiresApproval,
-      reviewCycleMonths: input.reviewCycleMonths,
-      status: 'draft',
-      currentVersion: 1,
-      approvedVersion: null,
-      effectiveDate: null,
-      nextReviewDate: null,
-      approvedBy: null,
-      approvedAt: null,
-      classification: input.classification,
-      controlIds: [],
-    }
-    ctx.db.documents.push(doc)
-    addVersion(ctx, doc, input.title, input.bodyMarkdown, input.changeSummary, 'create')
-    if (!doc.requiresApproval) markApproved(ctx, doc)
-    audit(ctx, 'document.created', { type: 'document', id: doc.id, label: label(doc) }, { version: 1 })
-    commit()
-    return json(detail(ctx, doc), 201)
-  }),
-
-  orgRoute('POST', '/documents/reorder', { permission: 'policies.edit', feature: 'policies' }, async (ctx) => {
-    const { parentId, orderedIds } = parse(reorderSchema, await ctx.json())
-    const docs = orderedIds.map((id) => findStored(ctx, id))
-    for (const doc of docs) assertParent(ctx, parentId, doc.id)
-    docs.forEach((doc, i) => {
-      if (doc.parentId !== parentId) {
-        audit(ctx, 'document.moved', { type: 'document', id: doc.id, label: label(doc) }, { from: doc.parentId, to: parentId })
+  orgRoute(
+    'POST',
+    '/documents',
+    { permission: 'policies.edit', feature: 'policies' },
+    async (ctx) => {
+      const input = parse(createDocumentSchema, await ctx.json())
+      assertDocIdFree(ctx, input.docId)
+      assertParent(ctx, input.parentId)
+      assertOwner(ctx, input.owner)
+      const siblings = orgDocs(ctx).filter((d) => d.parentId === input.parentId)
+      const at = ctx.now.toISOString()
+      const doc: Document = {
+        id: newId('doc'),
+        orgId: ctx.org.id,
+        createdAt: at,
+        updatedAt: at,
+        createdBy: ctx.user.id,
+        updatedBy: ctx.user.id,
+        version: 1,
+        docId: input.docId,
+        title: input.title,
+        parentId: input.parentId,
+        order: siblings.length ? Math.max(...siblings.map((s) => s.order)) + 1 : 0,
+        owner: input.owner,
+        requiresApproval: input.requiresApproval,
+        reviewCycleMonths: input.reviewCycleMonths,
+        status: 'draft',
+        currentVersion: 1,
+        approvedVersion: null,
+        effectiveDate: null,
+        nextReviewDate: null,
+        approvedBy: null,
+        approvedAt: null,
+        classification: input.classification,
+        controlIds: [],
       }
-      doc.parentId = parentId
-      doc.order = i
-    })
-    commit()
-    return noContent()
-  }),
+      ctx.db.documents.push(doc)
+      addVersion(ctx, doc, input.title, input.bodyMarkdown, input.changeSummary, 'create')
+      if (!doc.requiresApproval) markApproved(ctx, doc)
+      audit(
+        ctx,
+        'document.created',
+        { type: 'document', id: doc.id, label: label(doc) },
+        { version: 1 },
+      )
+      commit()
+      return json(detail(ctx, doc), 201)
+    },
+  ),
+
+  orgRoute(
+    'POST',
+    '/documents/reorder',
+    { permission: 'policies.edit', feature: 'policies' },
+    async (ctx) => {
+      const { parentId, orderedIds } = parse(reorderSchema, await ctx.json())
+      const docs = orderedIds.map((id) => findStored(ctx, id))
+      for (const doc of docs) assertParent(ctx, parentId, doc.id)
+      docs.forEach((doc, i) => {
+        if (doc.parentId !== parentId) {
+          audit(
+            ctx,
+            'document.moved',
+            { type: 'document', id: doc.id, label: label(doc) },
+            { from: doc.parentId, to: parentId },
+          )
+        }
+        doc.parentId = parentId
+        doc.order = i
+      })
+      commit()
+      return noContent()
+    },
+  ),
 
   orgRoute('GET', '/documents/:id', { feature: 'policies' }, (ctx) => {
     const { stored } = findVisible(ctx, ctx.params.id ?? '')
     return json(detail(ctx, stored))
   }),
 
-  orgRoute('PATCH', '/documents/:id', { permission: 'policies.edit', feature: 'policies' }, async (ctx) => {
-    const input = parse(updateDocumentSchema, await ctx.json())
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (doc.status === 'retired') {
-      throw new HttpError(422, 'unprocessable', 'Retired documents can’t be edited.')
-    }
-    checkVersion(doc, input.ifVersion)
-    if (input.docId !== undefined && input.docId !== doc.docId) assertDocIdFree(ctx, input.docId, doc.id)
-    if (input.parentId !== undefined) assertParent(ctx, input.parentId, doc.id)
-    if (input.owner !== undefined) assertOwner(ctx, input.owner)
+  orgRoute(
+    'PATCH',
+    '/documents/:id',
+    { permission: 'policies.edit', feature: 'policies' },
+    async (ctx) => {
+      const input = parse(updateDocumentSchema, await ctx.json())
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (doc.status === 'retired') {
+        throw new HttpError(422, 'unprocessable', 'Retired documents can’t be edited.')
+      }
+      checkVersion(doc, input.ifVersion)
+      if (input.docId !== undefined && input.docId !== doc.docId)
+        assertDocIdFree(ctx, input.docId, doc.id)
+      if (input.parentId !== undefined) assertParent(ctx, input.parentId, doc.id)
+      if (input.owner !== undefined) assertOwner(ctx, input.owner)
 
-    const current = storedVersion(ctx, doc.id, doc.currentVersion)
-    const title = input.title ?? doc.title
-    const body = input.bodyMarkdown ?? current?.bodyMarkdown ?? ''
-    const contentChanged = title !== doc.title || body !== (current?.bodyMarkdown ?? '')
+      const current = storedVersion(ctx, doc.id, doc.currentVersion)
+      const title = input.title ?? doc.title
+      const body = input.bodyMarkdown ?? current?.bodyMarkdown ?? ''
+      const contentChanged = title !== doc.title || body !== (current?.bodyMarkdown ?? '')
 
-    if (input.docId !== undefined) doc.docId = input.docId
-    if (input.parentId !== undefined && input.parentId !== doc.parentId) {
-      const siblings = orgDocs(ctx).filter((d) => d.parentId === input.parentId)
-      doc.parentId = input.parentId
-      doc.order = siblings.length ? Math.max(...siblings.map((s) => s.order)) + 1 : 0
-    }
-    if (input.owner !== undefined) doc.owner = input.owner
-    if (input.classification !== undefined) doc.classification = input.classification
-    if (input.requiresApproval !== undefined) doc.requiresApproval = input.requiresApproval
-    if (input.reviewCycleMonths !== undefined && input.reviewCycleMonths !== doc.reviewCycleMonths) {
-      doc.reviewCycleMonths = input.reviewCycleMonths
-      if (doc.effectiveDate) doc.nextReviewDate = addMonthsToDate(doc.effectiveDate, doc.reviewCycleMonths)
-    }
+      if (input.docId !== undefined) doc.docId = input.docId
+      if (input.parentId !== undefined && input.parentId !== doc.parentId) {
+        const siblings = orgDocs(ctx).filter((d) => d.parentId === input.parentId)
+        doc.parentId = input.parentId
+        doc.order = siblings.length ? Math.max(...siblings.map((s) => s.order)) + 1 : 0
+      }
+      if (input.owner !== undefined) doc.owner = input.owner
+      if (input.classification !== undefined) doc.classification = input.classification
+      if (input.requiresApproval !== undefined) doc.requiresApproval = input.requiresApproval
+      if (
+        input.reviewCycleMonths !== undefined &&
+        input.reviewCycleMonths !== doc.reviewCycleMonths
+      ) {
+        doc.reviewCycleMonths = input.reviewCycleMonths
+        if (doc.effectiveDate)
+          doc.nextReviewDate = addMonthsToDate(doc.effectiveDate, doc.reviewCycleMonths)
+      }
 
-    const target = { type: 'document', id: doc.id, label: label(doc) }
-    if (contentChanged) {
-      const from = doc.status
-      addVersion(ctx, doc, title, body, input.changeSummary ?? 'Update.', 'edit')
-      afterContentChange(ctx, doc)
-      audit(ctx, 'document.edited', target, { version: doc.currentVersion, statusFrom: from, statusTo: doc.status })
-    } else {
-      audit(ctx, 'document.updated', target, {})
-    }
-    touch(ctx, doc)
-    commit()
-    return json(detail(ctx, doc))
-  }),
+      const target = { type: 'document', id: doc.id, label: label(doc) }
+      if (contentChanged) {
+        const from = doc.status
+        addVersion(ctx, doc, title, body, input.changeSummary ?? 'Update.', 'edit')
+        afterContentChange(ctx, doc)
+        audit(ctx, 'document.edited', target, {
+          version: doc.currentVersion,
+          statusFrom: from,
+          statusTo: doc.status,
+        })
+      } else {
+        audit(ctx, 'document.updated', target, {})
+      }
+      touch(ctx, doc)
+      commit()
+      return json(detail(ctx, doc))
+    },
+  ),
 
-  orgRoute('DELETE', '/documents/:id', { permission: 'policies.edit', feature: 'policies' }, (ctx) => {
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (doc.approvedVersion !== null) {
-      throw new HttpError(422, 'unprocessable', 'Only drafts that were never approved can be deleted. Retire it instead.')
-    }
-    if (orgDocs(ctx).some((d) => d.parentId === doc.id)) {
-      throw new HttpError(422, 'unprocessable', 'Move or delete the pages under this one first.')
-    }
-    ctx.db.documents = ctx.db.documents.filter((d) => d.id !== doc.id)
-    ctx.db.documentVersions = ctx.db.documentVersions.filter((v) => v.documentId !== doc.id)
-    ctx.db.workflowEvents = ctx.db.workflowEvents.filter((w) => w.documentId !== doc.id)
-    audit(ctx, 'document.deleted', { type: 'document', id: doc.id, label: label(doc) })
-    commit()
-    return noContent()
-  }),
+  orgRoute(
+    'DELETE',
+    '/documents/:id',
+    { permission: 'policies.edit', feature: 'policies' },
+    (ctx) => {
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (doc.approvedVersion !== null) {
+        throw new HttpError(
+          422,
+          'unprocessable',
+          'Only drafts that were never approved can be deleted. Retire it instead.',
+        )
+      }
+      if (orgDocs(ctx).some((d) => d.parentId === doc.id)) {
+        throw new HttpError(422, 'unprocessable', 'Move or delete the pages under this one first.')
+      }
+      ctx.db.documents = ctx.db.documents.filter((d) => d.id !== doc.id)
+      ctx.db.documentVersions = ctx.db.documentVersions.filter((v) => v.documentId !== doc.id)
+      ctx.db.workflowEvents = ctx.db.workflowEvents.filter((w) => w.documentId !== doc.id)
+      audit(ctx, 'document.deleted', { type: 'document', id: doc.id, label: label(doc) })
+      commit()
+      return noContent()
+    },
+  ),
 
   orgRoute('GET', '/documents/:id/versions', { feature: 'policies' }, (ctx) => {
     const { doc } = findVisible(ctx, ctx.params.id ?? '')
     const versions = ctx.db.documentVersions
-      .filter((v) => v.documentId === doc.id && (readsDrafts(ctx) || v.version <= doc.currentVersion))
+      .filter(
+        (v) => v.documentId === doc.id && (readsDrafts(ctx) || v.version <= doc.currentVersion),
+      )
       .map((v) => toVersionSummary(ctx.db, v))
     return json(paginate(versions, ctx.query, { defaultSort: '-version' }))
   }),
@@ -507,138 +626,266 @@ export const documentRoutes: RouteDef[] = [
     const { doc } = findVisible(ctx, ctx.params.id ?? '')
     const n = Number(ctx.params.v)
     // Read-only roles can see approved history up to the approved version, not later drafts.
-    if (!Number.isInteger(n) || (!readsDrafts(ctx) && n > doc.currentVersion)) throw notFound('Version')
+    if (!Number.isInteger(n) || (!readsDrafts(ctx) && n > doc.currentVersion))
+      throw notFound('Version')
     const v = storedVersion(ctx, doc.id, n)
     if (!v) throw notFound('Version')
     return json(toVersion(ctx.db, v))
   }),
 
-  orgRoute('POST', '/documents/:id/submit', { permission: 'policies.edit', feature: 'policies' }, async (ctx) => {
-    const { note, ifVersion } = parse(workflowNoteSchema, await ctx.json())
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (ifVersion !== undefined) checkVersion(doc, ifVersion)
-    if (doc.status !== 'draft') throw new HttpError(422, 'unprocessable', 'Only drafts can be submitted for review.')
-    if (!doc.requiresApproval) throw new HttpError(422, 'unprocessable', 'This page doesn’t need approval; saving publishes it.')
-    doc.status = 'in_review'
-    addWorkflow(ctx, doc, 'submit', note || null)
-    touch(ctx, doc)
-    audit(ctx, 'document.submitted', { type: 'document', id: doc.id, label: label(doc) }, { version: doc.currentVersion, ...(note ? { note } : {}) })
-    notify(ctx, membersWith(ctx, 'policies.approve'), 'approval_requested', `${label(doc)} is ready for your decision`, `${ctx.user.name} submitted v${doc.currentVersion} for approval.`, docHref(ctx, doc))
-    commit()
-    return json(detail(ctx, doc))
-  }),
-
-  orgRoute('POST', '/documents/:id/approve', { permission: 'policies.approve', feature: 'policies' }, async (ctx) => {
-    const { note, ifVersion } = parse(workflowNoteSchema, await ctx.json())
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (ifVersion !== undefined) checkVersion(doc, ifVersion)
-    if (doc.status !== 'in_review') throw new HttpError(422, 'unprocessable', 'Only documents in review can be approved.')
-    markApproved(ctx, doc)
-    addWorkflow(ctx, doc, 'approve', note || null)
-    touch(ctx, doc)
-    audit(ctx, 'document.approved', { type: 'document', id: doc.id, label: label(doc) }, { version: doc.currentVersion, effectiveDate: doc.effectiveDate, nextReviewDate: doc.nextReviewDate })
-    notify(ctx, [doc.owner], 'approval_decided', `${label(doc)} v${doc.currentVersion} was approved`, `Approved by ${ctx.user.name}. It takes effect today.`, docHref(ctx, doc))
-    notify(
-      ctx,
-      membersWith(ctx, 'policies.acknowledge'),
-      'deadline_review',
-      `Please acknowledge ${label(doc)}`,
-      `v${doc.currentVersion} was approved. Read it and confirm you understand it.`,
-      docHref(ctx, doc),
-    )
-    commit()
-    return json(detail(ctx, doc))
-  }),
-
-  orgRoute('POST', '/documents/:id/reject', { permission: 'policies.approve', feature: 'policies' }, async (ctx) => {
-    const { note, ifVersion } = parse(rejectSchema, await ctx.json())
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (ifVersion !== undefined) checkVersion(doc, ifVersion)
-    if (doc.status !== 'in_review') throw new HttpError(422, 'unprocessable', 'Only documents in review can be sent back.')
-    doc.status = 'draft'
-    addWorkflow(ctx, doc, 'reject', note)
-    touch(ctx, doc)
-    audit(ctx, 'document.changes_requested', { type: 'document', id: doc.id, label: label(doc) }, { version: doc.currentVersion, note })
-    notify(ctx, [doc.owner], 'approval_decided', `Changes requested on ${label(doc)}`, note, docHref(ctx, doc))
-    commit()
-    return json(detail(ctx, doc))
-  }),
-
-  orgRoute('POST', '/documents/:id/restore', { permission: 'policies.edit', feature: 'policies' }, async (ctx) => {
-    const input = parse(restoreSchema, await ctx.json())
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (doc.status === 'retired') throw new HttpError(422, 'unprocessable', 'Retired documents can’t be edited.')
-    checkVersion(doc, input.ifVersion)
-    const source = storedVersion(ctx, doc.id, input.version)
-    if (!source) throw notFound('Version')
-    if (input.version === doc.currentVersion) {
-      throw new HttpError(422, 'unprocessable', `v${input.version} is already the current version.`)
-    }
-    addVersion(ctx, doc, source.title, source.bodyMarkdown, input.changeSummary || `Restored from v${input.version}.`, 'restore', input.version)
-    afterContentChange(ctx, doc)
-    touch(ctx, doc)
-    audit(ctx, 'document.restored', { type: 'document', id: doc.id, label: label(doc) }, { version: doc.currentVersion, restoredFrom: input.version })
-    commit()
-    return json(detail(ctx, doc))
-  }),
-
-  orgRoute('POST', '/documents/:id/retire', { permission: 'policies.approve', feature: 'policies' }, async (ctx) => {
-    const { note, ifVersion } = parse(workflowNoteSchema, await ctx.json())
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    if (ifVersion !== undefined) checkVersion(doc, ifVersion)
-    if (doc.status === 'retired') throw new HttpError(422, 'unprocessable', 'This document is already retired.')
-    doc.status = 'retired'
-    addWorkflow(ctx, doc, 'retire', note || null)
-    touch(ctx, doc)
-    audit(ctx, 'document.retired', { type: 'document', id: doc.id, label: label(doc) }, note ? { note } : {})
-    commit()
-    return json(detail(ctx, doc))
-  }),
-
-  orgRoute('GET', '/documents/:id/acknowledgements', { permission: 'policies.read_drafts', feature: 'policies' }, (ctx) => {
-    const doc = findStored(ctx, ctx.params.id ?? '')
-    const version = doc.status === 'retired' ? null : doc.approvedVersion
-    const required = activeMembers(ctx).filter((m) => can({ roles: m.roles }, 'policies.acknowledge'))
-    const members = required.map((m) => {
-      const user = ctx.db.users.find((u) => u.id === m.userId)
-      const ack = version
-        ? ctx.db.acknowledgements.find((a) => a.documentId === doc.id && a.version === version && a.userId === m.userId)
-        : undefined
-      return {
-        userId: m.userId,
-        name: user?.name ?? 'Former member',
-        title: user?.title ?? null,
-        roles: m.roles,
-        acknowledgedAt: ack?.at ?? null,
-      }
-    })
-    members.sort((a, b) => Number(Boolean(a.acknowledgedAt)) - Number(Boolean(b.acknowledgedAt)) || a.name.localeCompare(b.name))
-    const body: AcknowledgementStatus = {
-      documentId: doc.id,
-      version,
-      required: members.length,
-      acknowledged: members.filter((m) => m.acknowledgedAt).length,
-      members,
-    }
-    return json(body)
-  }),
-
-  orgRoute('POST', '/documents/:id/acknowledgements', { permission: 'policies.acknowledge', feature: 'policies' }, (ctx) => {
-    const { doc } = findVisible(ctx, ctx.params.id ?? '')
-    if (doc.approvedVersion === null || doc.status === 'retired') {
-      throw new HttpError(422, 'unprocessable', 'There’s no approved version to acknowledge yet.')
-    }
-    let ack = ctx.db.acknowledgements.find(
-      (a) => a.documentId === doc.id && a.version === doc.approvedVersion && a.userId === ctx.user.id,
-    )
-    if (!ack) {
-      ack = { id: newId('ack'), documentId: doc.id, version: doc.approvedVersion, userId: ctx.user.id, at: ctx.now.toISOString() }
-      ctx.db.acknowledgements.push(ack)
-      audit(ctx, 'document.acknowledged', { type: 'document', id: doc.id, label: label(doc) }, { version: doc.approvedVersion })
+  orgRoute(
+    'POST',
+    '/documents/:id/submit',
+    { permission: 'policies.edit', feature: 'policies' },
+    async (ctx) => {
+      const { note, ifVersion } = parse(workflowNoteSchema, await ctx.json())
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (ifVersion !== undefined) checkVersion(doc, ifVersion)
+      if (doc.status !== 'draft')
+        throw new HttpError(422, 'unprocessable', 'Only drafts can be submitted for review.')
+      if (!doc.requiresApproval)
+        throw new HttpError(
+          422,
+          'unprocessable',
+          'This page doesn’t need approval; saving publishes it.',
+        )
+      doc.status = 'in_review'
+      addWorkflow(ctx, doc, 'submit', note || null)
+      touch(ctx, doc)
+      audit(
+        ctx,
+        'document.submitted',
+        { type: 'document', id: doc.id, label: label(doc) },
+        { version: doc.currentVersion, ...(note ? { note } : {}) },
+      )
+      notify(
+        ctx,
+        membersWith(ctx, 'policies.approve'),
+        'approval_requested',
+        `${label(doc)} is ready for your decision`,
+        `${ctx.user.name} submitted v${doc.currentVersion} for approval.`,
+        docHref(ctx, doc),
+      )
       commit()
-    }
-    return json<Acknowledgement>(ack, 201)
-  }),
+      return json(detail(ctx, doc))
+    },
+  ),
+
+  orgRoute(
+    'POST',
+    '/documents/:id/approve',
+    { permission: 'policies.approve', feature: 'policies' },
+    async (ctx) => {
+      const { note, ifVersion } = parse(workflowNoteSchema, await ctx.json())
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (ifVersion !== undefined) checkVersion(doc, ifVersion)
+      if (doc.status !== 'in_review')
+        throw new HttpError(422, 'unprocessable', 'Only documents in review can be approved.')
+      markApproved(ctx, doc)
+      addWorkflow(ctx, doc, 'approve', note || null)
+      touch(ctx, doc)
+      audit(
+        ctx,
+        'document.approved',
+        { type: 'document', id: doc.id, label: label(doc) },
+        {
+          version: doc.currentVersion,
+          effectiveDate: doc.effectiveDate,
+          nextReviewDate: doc.nextReviewDate,
+        },
+      )
+      notify(
+        ctx,
+        [doc.owner],
+        'approval_decided',
+        `${label(doc)} v${doc.currentVersion} was approved`,
+        `Approved by ${ctx.user.name}. It takes effect today.`,
+        docHref(ctx, doc),
+      )
+      notify(
+        ctx,
+        membersWith(ctx, 'policies.acknowledge'),
+        'deadline_review',
+        `Please acknowledge ${label(doc)}`,
+        `v${doc.currentVersion} was approved. Read it and confirm you understand it.`,
+        docHref(ctx, doc),
+      )
+      commit()
+      return json(detail(ctx, doc))
+    },
+  ),
+
+  orgRoute(
+    'POST',
+    '/documents/:id/reject',
+    { permission: 'policies.approve', feature: 'policies' },
+    async (ctx) => {
+      const { note, ifVersion } = parse(rejectSchema, await ctx.json())
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (ifVersion !== undefined) checkVersion(doc, ifVersion)
+      if (doc.status !== 'in_review')
+        throw new HttpError(422, 'unprocessable', 'Only documents in review can be sent back.')
+      doc.status = 'draft'
+      addWorkflow(ctx, doc, 'reject', note)
+      touch(ctx, doc)
+      audit(
+        ctx,
+        'document.changes_requested',
+        { type: 'document', id: doc.id, label: label(doc) },
+        { version: doc.currentVersion, note },
+      )
+      notify(
+        ctx,
+        [doc.owner],
+        'approval_decided',
+        `Changes requested on ${label(doc)}`,
+        note,
+        docHref(ctx, doc),
+      )
+      commit()
+      return json(detail(ctx, doc))
+    },
+  ),
+
+  orgRoute(
+    'POST',
+    '/documents/:id/restore',
+    { permission: 'policies.edit', feature: 'policies' },
+    async (ctx) => {
+      const input = parse(restoreSchema, await ctx.json())
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (doc.status === 'retired')
+        throw new HttpError(422, 'unprocessable', 'Retired documents can’t be edited.')
+      checkVersion(doc, input.ifVersion)
+      const source = storedVersion(ctx, doc.id, input.version)
+      if (!source) throw notFound('Version')
+      if (input.version === doc.currentVersion) {
+        throw new HttpError(
+          422,
+          'unprocessable',
+          `v${input.version} is already the current version.`,
+        )
+      }
+      addVersion(
+        ctx,
+        doc,
+        source.title,
+        source.bodyMarkdown,
+        input.changeSummary || `Restored from v${input.version}.`,
+        'restore',
+        input.version,
+      )
+      afterContentChange(ctx, doc)
+      touch(ctx, doc)
+      audit(
+        ctx,
+        'document.restored',
+        { type: 'document', id: doc.id, label: label(doc) },
+        { version: doc.currentVersion, restoredFrom: input.version },
+      )
+      commit()
+      return json(detail(ctx, doc))
+    },
+  ),
+
+  orgRoute(
+    'POST',
+    '/documents/:id/retire',
+    { permission: 'policies.approve', feature: 'policies' },
+    async (ctx) => {
+      const { note, ifVersion } = parse(workflowNoteSchema, await ctx.json())
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      if (ifVersion !== undefined) checkVersion(doc, ifVersion)
+      if (doc.status === 'retired')
+        throw new HttpError(422, 'unprocessable', 'This document is already retired.')
+      doc.status = 'retired'
+      addWorkflow(ctx, doc, 'retire', note || null)
+      touch(ctx, doc)
+      audit(
+        ctx,
+        'document.retired',
+        { type: 'document', id: doc.id, label: label(doc) },
+        note ? { note } : {},
+      )
+      commit()
+      return json(detail(ctx, doc))
+    },
+  ),
+
+  orgRoute(
+    'GET',
+    '/documents/:id/acknowledgements',
+    { permission: 'policies.read_drafts', feature: 'policies' },
+    (ctx) => {
+      const doc = findStored(ctx, ctx.params.id ?? '')
+      const version = doc.status === 'retired' ? null : doc.approvedVersion
+      const required = activeMembers(ctx).filter((m) =>
+        can({ roles: m.roles }, 'policies.acknowledge'),
+      )
+      const members = required.map((m) => {
+        const user = ctx.db.users.find((u) => u.id === m.userId)
+        const ack = version
+          ? ctx.db.acknowledgements.find(
+              (a) => a.documentId === doc.id && a.version === version && a.userId === m.userId,
+            )
+          : undefined
+        return {
+          userId: m.userId,
+          name: user?.name ?? 'Former member',
+          title: user?.title ?? null,
+          roles: m.roles,
+          acknowledgedAt: ack?.at ?? null,
+        }
+      })
+      members.sort(
+        (a, b) =>
+          Number(Boolean(a.acknowledgedAt)) - Number(Boolean(b.acknowledgedAt)) ||
+          a.name.localeCompare(b.name),
+      )
+      const body: AcknowledgementStatus = {
+        documentId: doc.id,
+        version,
+        required: members.length,
+        acknowledged: members.filter((m) => m.acknowledgedAt).length,
+        members,
+      }
+      return json(body)
+    },
+  ),
+
+  orgRoute(
+    'POST',
+    '/documents/:id/acknowledgements',
+    { permission: 'policies.acknowledge', feature: 'policies' },
+    (ctx) => {
+      const { doc } = findVisible(ctx, ctx.params.id ?? '')
+      if (doc.approvedVersion === null || doc.status === 'retired') {
+        throw new HttpError(422, 'unprocessable', 'There’s no approved version to acknowledge yet.')
+      }
+      let ack = ctx.db.acknowledgements.find(
+        (a) =>
+          a.documentId === doc.id && a.version === doc.approvedVersion && a.userId === ctx.user.id,
+      )
+      if (!ack) {
+        ack = {
+          id: newId('ack'),
+          documentId: doc.id,
+          version: doc.approvedVersion,
+          userId: ctx.user.id,
+          at: ctx.now.toISOString(),
+        }
+        ctx.db.acknowledgements.push(ack)
+        audit(
+          ctx,
+          'document.acknowledged',
+          { type: 'document', id: doc.id, label: label(doc) },
+          { version: doc.approvedVersion },
+        )
+        commit()
+      }
+      return json<Acknowledgement>(ack, 201)
+    },
+  ),
 
   orgRoute('POST', '/documents/:id/acknowledgements/remind', { feature: 'policies' }, (ctx) => {
     if (!ctx.can('policies.edit') && !ctx.can('policies.approve')) throw forbidden()
@@ -648,11 +895,29 @@ export const documentRoutes: RouteDef[] = [
     }
     const pending = activeMembers(ctx)
       .filter((m) => can({ roles: m.roles }, 'policies.acknowledge'))
-      .filter((m) => !ctx.db.acknowledgements.some((a) => a.documentId === doc.id && a.version === doc.approvedVersion && a.userId === m.userId))
+      .filter(
+        (m) =>
+          !ctx.db.acknowledgements.some(
+            (a) =>
+              a.documentId === doc.id && a.version === doc.approvedVersion && a.userId === m.userId,
+          ),
+      )
       .map((m) => m.userId)
       .filter((id) => id !== ctx.user.id)
-    notify(ctx, pending, 'deadline_review', `Reminder: please acknowledge ${label(doc)}`, `${ctx.user.name} asked you to read v${doc.approvedVersion} and confirm you understand it.`, docHref(ctx, doc))
-    audit(ctx, 'document.ack_reminder_sent', { type: 'document', id: doc.id, label: label(doc) }, { count: pending.length })
+    notify(
+      ctx,
+      pending,
+      'deadline_review',
+      `Reminder: please acknowledge ${label(doc)}`,
+      `${ctx.user.name} asked you to read v${doc.approvedVersion} and confirm you understand it.`,
+      docHref(ctx, doc),
+    )
+    audit(
+      ctx,
+      'document.ack_reminder_sent',
+      { type: 'document', id: doc.id, label: label(doc) },
+      { count: pending.length },
+    )
     commit()
     return json({ reminded: pending.length })
   }),
@@ -665,7 +930,9 @@ searchSources.push({
   items: (ctx) => {
     if (!ctx.can('policies.read')) return []
     return visibleDocs(ctx).map((d) => {
-      const v = ctx.db.documentVersions.find((x) => x.documentId === d.id && x.version === d.currentVersion)
+      const v = ctx.db.documentVersions.find(
+        (x) => x.documentId === d.id && x.version === d.currentVersion,
+      )
       return {
         type: 'document' as const,
         id: d.id,

@@ -43,7 +43,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 
 declare module '@tanstack/react-table' {
@@ -137,7 +143,13 @@ export function DataTable<T>({
     header: ({ table }) => (
       <Checkbox
         aria-label="Select all rows on this page"
-        checked={table.getIsAllPageRowsSelected() ? true : table.getIsSomePageRowsSelected() ? 'indeterminate' : false}
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? true
+            : table.getIsSomePageRowsSelected()
+              ? 'indeterminate'
+              : false
+        }
         onCheckedChange={(v) => table.toggleAllPageRowsSelected(v === true)}
       />
     ),
@@ -208,7 +220,10 @@ export function DataTable<T>({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-64">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <SearchIcon
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted"
+            aria-hidden="true"
+          />
           <Input
             type="search"
             value={search}
@@ -225,7 +240,10 @@ export function DataTable<T>({
             size="sm"
             onClick={() => {
               setSearch('')
-              setParams({ q: '', filters: Object.fromEntries(Object.keys(params.filters).map((k) => [k, []])) })
+              setParams({
+                q: '',
+                filters: Object.fromEntries(Object.keys(params.filters).map((k) => [k, []])),
+              })
             }}
           >
             <XIcon aria-hidden="true" /> Clear filters
@@ -240,7 +258,10 @@ export function DataTable<T>({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Density</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={density} onValueChange={(v) => setDensity(v === 'compact' ? 'compact' : 'comfortable')}>
+              <DropdownMenuRadioGroup
+                value={density}
+                onValueChange={(v) => setDensity(v === 'compact' ? 'compact' : 'comfortable')}
+              >
                 <DropdownMenuRadioItem value="comfortable">Comfortable</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="compact">Compact</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
@@ -264,7 +285,9 @@ export function DataTable<T>({
                     onCheckedChange={(v) =>
                       setParams({
                         page: params.page,
-                        hidden: v ? params.hidden.filter((h) => h !== c.id) : [...params.hidden, c.id],
+                        hidden: v
+                          ? params.hidden.filter((h) => h !== c.id)
+                          : [...params.hidden, c.id],
                       })
                     }
                   >
@@ -275,7 +298,12 @@ export function DataTable<T>({
             </DropdownMenu>
           ) : null}
           {exportPath ? (
-            <Button variant="secondary" size="md" onClick={() => void runExport()} disabled={exporting || total === 0}>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => void runExport()}
+              disabled={exporting || total === 0}
+            >
               <DownloadIcon aria-hidden="true" />
               {exporting ? 'Exporting…' : 'Export CSV'}
             </Button>
@@ -302,8 +330,17 @@ export function DataTable<T>({
       ) : !isLoading && total === 0 && !filtered ? (
         emptyState
       ) : (
-        <div className={cn('overflow-x-auto rounded-lg border border-line bg-surface', isFetching && !isLoading && 'opacity-70')}>
-          <table className="w-full min-w-[640px] border-collapse text-base tabular-nums" aria-label={label} aria-busy={isLoading || isFetching}>
+        <div
+          className={cn(
+            'overflow-x-auto rounded-lg border border-line bg-surface',
+            isFetching && !isLoading && 'opacity-70',
+          )}
+        >
+          <table
+            className="w-full min-w-[640px] border-collapse text-base tabular-nums"
+            aria-label={label}
+            aria-busy={isLoading || isFetching}
+          >
             <thead className="bg-surface-2 text-left">
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
@@ -314,7 +351,9 @@ export function DataTable<T>({
                       <th
                         key={header.id}
                         scope="col"
-                        aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined}
+                        aria-sort={
+                          dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined
+                        }
                         className={cn(
                           'h-9 border-b border-line px-3 text-xs font-semibold whitespace-nowrap text-muted',
                           meta?.align === 'right' && 'text-right',
@@ -376,7 +415,10 @@ export function DataTable<T>({
                   ))}
               {!isLoading && total === 0 ? (
                 <tr>
-                  <td colSpan={table.getVisibleLeafColumns().length} className="px-3 py-10 text-center text-muted">
+                  <td
+                    colSpan={table.getVisibleLeafColumns().length}
+                    className="px-3 py-10 text-center text-muted"
+                  >
                     {noMatchesText}
                   </td>
                 </tr>
@@ -393,7 +435,10 @@ export function DataTable<T>({
           </p>
           <div className="flex items-center gap-2">
             <span className="hidden sm:inline">Rows per page</span>
-            <Select value={String(params.pageSize)} onValueChange={(v) => setParams({ pageSize: Number(v) })}>
+            <Select
+              value={String(params.pageSize)}
+              onValueChange={(v) => setParams({ pageSize: Number(v) })}
+            >
               <SelectTrigger className="h-7 w-18" aria-label="Rows per page">
                 <SelectValue />
               </SelectTrigger>

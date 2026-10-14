@@ -11,7 +11,11 @@ export const docIdSchema = z
 export const reviewCycleSchema = z.union([z.literal(6), z.literal(12), z.literal(24)])
 export const classificationSchema = z.enum(['public', 'internal', 'confidential', 'restricted'])
 
-const titleSchema = z.string().trim().min(3, 'Give the page a title.').max(160, 'Keep the title under 160 characters.')
+const titleSchema = z
+  .string()
+  .trim()
+  .min(3, 'Give the page a title.')
+  .max(160, 'Keep the title under 160 characters.')
 const bodySchema = z.string().max(200_000, 'The page is too long (200,000 characters max).')
 const changeSummarySchema = z
   .string()

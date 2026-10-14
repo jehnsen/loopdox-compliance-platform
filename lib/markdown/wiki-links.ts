@@ -41,7 +41,12 @@ export function remarkWikiLinks(options: WikiLinkOptions) {
             type: 'link',
             url: options.href(target),
             title: `${target.docId} ${target.title}`,
-            children: [{ type: 'text', value: custom ?? (standalone ? `${target.docId} ${target.title}` : target.docId) }],
+            children: [
+              {
+                type: 'text',
+                value: custom ?? (standalone ? `${target.docId} ${target.title}` : target.docId),
+              },
+            ],
             data: { hProperties: { className: ['wikilink'] } },
           }
           out.push(link)
@@ -49,7 +54,10 @@ export function remarkWikiLinks(options: WikiLinkOptions) {
           const broken: Emphasis = {
             type: 'emphasis',
             children: [{ type: 'text', value: custom ?? docId }],
-            data: { hName: 'span', hProperties: { className: ['wikilink-broken'], title: BROKEN_LINK_TITLE } },
+            data: {
+              hName: 'span',
+              hProperties: { className: ['wikilink-broken'], title: BROKEN_LINK_TITLE },
+            },
           }
           out.push(broken)
         }

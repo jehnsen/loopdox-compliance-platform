@@ -126,8 +126,14 @@ export const api = {
  * Downloads a file the backend generates (exports). The BFF passes the
  * Content-Disposition filename through.
  */
-export async function downloadFile(path: string, query?: Record<string, QueryValue>): Promise<void> {
-  const res = await fetch(`/api/v1${path}${toQueryString(query)}`, { credentials: 'same-origin', cache: 'no-store' })
+export async function downloadFile(
+  path: string,
+  query?: Record<string, QueryValue>,
+): Promise<void> {
+  const res = await fetch(`/api/v1${path}${toQueryString(query)}`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  })
   if (!res.ok) throw await toApiError(res)
   const disposition = res.headers.get('content-disposition') ?? ''
   const filename = /filename="?([^"]+)"?/.exec(disposition)?.[1] ?? 'export'

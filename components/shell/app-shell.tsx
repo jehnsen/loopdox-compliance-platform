@@ -35,7 +35,7 @@ function TopBar({
   const canReport = hasFeature(tier, 'privacy') && can({ roles }, 'incidents.report')
   const canAsk = hasFeature(tier, 'ask.policy') && can({ roles }, 'ask.use')
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-line bg-surface/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-surface/85 lg:px-4 sm:gap-2">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-line bg-surface/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:gap-2 lg:px-4">
       <Button
         variant="ghost"
         size="icon"
@@ -119,7 +119,11 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-dvh">
+    <div
+      className={
+        collapsed ? 'flex min-h-dvh [--sidebar-w:3.5rem]' : 'flex min-h-dvh [--sidebar-w:15rem]'
+      }
+    >
       <a
         href="#main"
         className="sr-only z-50 rounded-md bg-accent px-3 py-2 text-accent-fg focus:not-sr-only focus:fixed focus:top-2 focus:left-2"

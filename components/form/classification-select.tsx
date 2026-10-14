@@ -2,7 +2,13 @@
 
 import type { Classification } from '@/lib/api/types'
 import { useSession } from '@/components/providers/session-provider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const ORDER: Classification[] = ['public', 'internal', 'confidential', 'restricted']
 

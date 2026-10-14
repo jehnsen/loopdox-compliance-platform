@@ -41,9 +41,12 @@ function useColumns(org: string): ColumnDef<DocumentSummary>[] {
       {
         id: 'title',
         header: 'Title',
-        meta: { label: 'Title', sortKey: 'title', alwaysVisible: true },
+        meta: { label: 'Title', sortKey: 'title', alwaysVisible: true, className: 'min-w-56' },
         cell: ({ row }) => (
-          <Link href={policyPaths.view(org, row.original.id)} className="font-medium hover:text-accent hover:underline">
+          <Link
+            href={policyPaths.view(org, row.original.id)}
+            className="font-medium hover:text-accent hover:underline"
+          >
             {row.original.title}
           </Link>
         ),
@@ -70,7 +73,9 @@ function useColumns(org: string): ColumnDef<DocumentSummary>[] {
             <span className="font-mono text-sm whitespace-nowrap">
               v{d.currentVersion}
               {d.approvedVersion && d.approvedVersion !== d.currentVersion ? (
-                <span className="ml-1 font-sans text-xs text-muted">(v{d.approvedVersion} approved)</span>
+                <span className="ml-1 font-sans text-xs text-muted">
+                  (v{d.approvedVersion} approved)
+                </span>
               ) : null}
             </span>
           )
@@ -94,7 +99,13 @@ function useColumns(org: string): ColumnDef<DocumentSummary>[] {
         id: 'updatedAt',
         header: 'Last edited',
         meta: { label: 'Last edited', sortKey: 'updatedAt' },
-        cell: ({ row }) => <DateText value={row.original.updatedAt} relative className="whitespace-nowrap text-muted" />,
+        cell: ({ row }) => (
+          <DateText
+            value={row.original.updatedAt}
+            relative
+            className="whitespace-nowrap text-muted"
+          />
+        ),
       },
     ],
     [org],
@@ -192,7 +203,7 @@ export function PolicyLibraryPage() {
     <aside
       aria-label="Policy tree"
       className={cn(
-        'rounded-lg border border-line bg-surface p-2 lg:sticky lg:top-18 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto',
+        'max-h-80 min-w-0 overflow-y-auto rounded-lg border border-line bg-surface p-2 lg:sticky lg:top-18 lg:max-h-[calc(100dvh-6rem)]',
         layout === 'table' && 'hidden',
       )}
     >
@@ -211,7 +222,8 @@ export function PolicyLibraryPage() {
               { parentId, orderedIds },
               {
                 onSuccess: () => toast.success(`Moved ${movedLabel}`),
-                onError: (e) => toast.error(isApiError(e) ? e.message : 'Couldn’t reorder. Try again.'),
+                onError: (e) =>
+                  toast.error(isApiError(e) ? e.message : 'Couldn’t reorder. Try again.'),
               },
             )
           }
@@ -231,7 +243,11 @@ export function PolicyLibraryPage() {
         <span id="layout-label" className="text-sm text-muted">
           Layout
         </span>
-        <div role="radiogroup" aria-labelledby="layout-label" className="flex rounded-md border border-line bg-surface p-0.5">
+        <div
+          role="radiogroup"
+          aria-labelledby="layout-label"
+          className="flex rounded-md border border-line bg-surface p-0.5"
+        >
           {(['tree', 'table'] as const).map((l) => (
             <button
               key={l}

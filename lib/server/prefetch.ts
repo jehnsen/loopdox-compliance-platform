@@ -7,7 +7,9 @@ import { serverGet, ServerApiError } from '@/lib/server/api'
  * Prefetches queries on the server so the page renders with data on first paint.
  * A 404 renders the not-found page; other errors are left for the client to show.
  */
-export async function prefetch(entries: { queryKey: QueryKey; path: string }[]): Promise<DehydratedState> {
+export async function prefetch(
+  entries: { queryKey: QueryKey; path: string }[],
+): Promise<DehydratedState> {
   const qc = new QueryClient()
   await Promise.all(
     entries.map(async ({ queryKey, path }) => {

@@ -10,10 +10,19 @@ interface UiPrefs {
   setDensity: (d: Density) => void
 }
 
-const UiPrefsContext = createContext<UiPrefs>({ density: 'comfortable', setDensity: () => undefined })
+const UiPrefsContext = createContext<UiPrefs>({
+  density: 'comfortable',
+  setDensity: () => undefined,
+})
 
 /** Per-user display preferences, persisted in non-sensitive cookies so the server renders them. */
-export function UiPrefsProvider({ initialDensity, children }: { initialDensity: Density; children: ReactNode }) {
+export function UiPrefsProvider({
+  initialDensity,
+  children,
+}: {
+  initialDensity: Density
+  children: ReactNode
+}) {
   const [density, setDensityState] = useState<Density>(initialDensity)
   const setDensity = useCallback((d: Density) => {
     setDensityState(d)

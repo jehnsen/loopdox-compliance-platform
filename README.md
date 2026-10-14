@@ -10,11 +10,12 @@ This repo is the **frontend only** (Next.js App Router). The FastAPI backend is 
 
 ## Status
 
-| Milestone                                                                                                                   | State   |
-| --------------------------------------------------------------------------------------------------------------------------- | ------- |
-| M1 Foundation: shell, auth, mock API, permissions, entitlements                                                             | ✅ Done |
-| M2 Policies                                                                                                                 | Next    |
-| M3 Privacy · M4 Overview · M5 Security · M6 Evidence · M7 Ask & Questionnaires · M8 AI Governance · M9 Settings & hardening | Planned |
+| Milestone                                                                                                      | State   |
+| -------------------------------------------------------------------------------------------------------------- | ------- |
+| M1 Foundation: shell, auth, mock API, permissions, entitlements                                                | ✅ Done |
+| M2 Policies: library, read view, editor, versions, diff, approval workflow, acknowledgements                   | ✅ Done |
+| M3 Privacy                                                                                                     | Next    |
+| M4 Overview · M5 Security · M6 Evidence · M7 Ask & Questionnaires · M8 AI Governance · M9 Settings & hardening | Planned |
 
 Modules not built yet already appear in the navigation. They open a placeholder that applies the real permission check and plan gate.
 
@@ -46,7 +47,7 @@ Open http://localhost:3000. In mock mode, the sign-in page lists every seeded us
 | `pnpm test:e2e`                     | End-to-end and accessibility tests (Playwright + axe). Starts its own dev server on port 3100. Run `pnpm exec playwright install chromium` once first. |
 | `pnpm mock:reset`                   | Reseed the mock database (`.mock-db.json`). Restart `pnpm dev` afterwards.                                                                             |
 
-> Next.js allows one `next dev` per project directory. Stop your own dev server before `pnpm test:e2e`, or set `E2E_PORT` and run Playwright against the server you already have.
+> Next.js allows one `next dev` per project directory. If you have `pnpm dev` running, run the suite against a production build instead: `pnpm build && E2E_PROD=1 pnpm test:e2e`.
 
 ## Environment variables
 
@@ -90,7 +91,19 @@ Every seeded user's password is `loopdox-demo`. Or use the one-click **Sign in a
 
 Other demo links: `/accept-invite/demo-invite-token` (pending invite) and `/reset-password?token=demo-reset-token`.
 
-Policy titles are in `mocks/seed/policies.ts` (placeholders except ITD-006).
+Policy titles are in `mocks/seed/policies.ts` (placeholders except ITD-006). Policy text, with its version history, is in `mocks/seed/policy-content.ts`; each clause records the version that introduced it, so the seeded history has real diffs.
+
+### Policies to try
+
+| Where                                  | What you'll see                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------------- |
+| `/3rdloop/policies`                    | Tree and table, filters (status, owner, review, section, framework), CSV export |
+| `ITD-006`                              | Approved v4 with four versions of history; open History for diffs               |
+| `ITD-007`                              | v3 in review. As Michael Manabat: Approve / Request changes                     |
+| `ITD-010`                              | Never-approved draft with a "changes requested" note                            |
+| `ITD-013`                              | Review overdue                                                                  |
+| `ITD-015`                              | Draft v3 on top of approved v2 (staff still see v2)                             |
+| `/3rdloop/my-policies` as Staff Member | ITD-008 and ITD-012 waiting to be acknowledged                                  |
 
 ## Auth (backend-for-frontend)
 
@@ -120,12 +133,16 @@ app/                      routes (App Router)
 components/ui/            shadcn-style primitives, restyled to our tokens
 components/shell/         AppShell, Sidebar, TopBar, OrgSwitcher, CommandPalette, NotificationsBell, UserMenu, IdleTimeout
 components/               shared blocks: PageHeader, MetadataStrip, StatusPill, chips, states, UpgradeCard, ConfirmDialog, Gate…
-features/<module>/        module components, hooks and forms
+features/<module>/        module components, hooks and forms (policies/ in M2)
+components/data-table/    DataTable (server paging/sort/filters in the URL), FacetFilter
+components/markdown/      MarkdownView (sanitised, [[ID]] links), MarkdownEditor (CodeMirror, lazy)
 lib/api/                  client.ts, types.ts (the contract), query-keys.ts, hooks/
 lib/auth/                 permissions.ts, can.tsx, cookies.ts, refresh.ts
 lib/server/               server-only helpers: backend caller, session, origin check
 lib/schemas/              zod schemas shared by forms and the mock API
-lib/utils/                dates (timezone-aware), format, ids, hooks
+lib/utils/                dates (timezone-aware), format, ids, list params, hooks
+lib/markdown/             wiki-link remark plugin, TOC extraction, sanitize schema
+lib/diff.ts               line/word diff used by DiffView
 lib/i18n/en.ts            UI strings
 lib/entitlements.ts       plan features
 lib/nav.ts                sidebar and command-palette navigation

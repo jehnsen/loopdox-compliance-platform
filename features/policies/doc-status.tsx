@@ -15,7 +15,13 @@ export function DocStatusPill({ status }: { status: DocumentStatus }) {
 }
 
 /** "Review overdue" / "Review due soon"; nothing when the review date is comfortably ahead. */
-export function ReviewPill({ state, className }: { state: ReviewState | null; className?: string }) {
+export function ReviewPill({
+  state,
+  className,
+}: {
+  state: ReviewState | null
+  className?: string
+}) {
   if (state === 'overdue') return <StatusPill status="review_overdue" className={className} />
   if (state === 'due_soon') return <StatusPill status="review_due_soon" className={className} />
   return null
@@ -25,10 +31,26 @@ export function ReviewPill({ state, className }: { state: ReviewState | null; cl
  * Compact status mark for the tree. Shape carries meaning without colour:
  * hollow = draft, filled = in review / approved, clock = review overdue, dash = retired.
  */
-export function StatusDot({ status, reviewState }: { status: DocumentStatus; reviewState: ReviewState | null }) {
-  const label = reviewState === 'overdue' ? `${DOC_STATUS_LABELS[status]}, review overdue` : DOC_STATUS_LABELS[status]
+export function StatusDot({
+  status,
+  reviewState,
+}: {
+  status: DocumentStatus
+  reviewState: ReviewState | null
+}) {
+  const label =
+    reviewState === 'overdue'
+      ? `${DOC_STATUS_LABELS[status]}, review overdue`
+      : DOC_STATUS_LABELS[status]
   if (status === 'approved' && reviewState === 'overdue') {
-    return <ClockIcon className="size-3 shrink-0 text-bad" strokeWidth={2.5} aria-label={label} role="img" />
+    return (
+      <ClockIcon
+        className="size-3 shrink-0 text-bad"
+        strokeWidth={2.5}
+        aria-label={label}
+        role="img"
+      />
+    )
   }
   return (
     <span

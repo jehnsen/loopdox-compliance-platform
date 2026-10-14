@@ -33,7 +33,13 @@ export function DateText({
 }
 
 /** A calendar date such as an effective or review date: "14 Oct 2026". */
-export function CalendarDate({ value, className }: { value: string | null | undefined; className?: string }) {
+export function CalendarDate({
+  value,
+  className,
+}: {
+  value: string | null | undefined
+  className?: string
+}) {
   if (!value) return <span className={className}>—</span>
   return (
     <time dateTime={value} className={className}>
