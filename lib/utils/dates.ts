@@ -92,3 +92,14 @@ export function formatCalendarDate(date: string): string {
   const [y, m, d] = date.slice(0, 10).split('-').map(Number) as [number, number, number]
   return formatInTimeZone(new Date(Date.UTC(y, m - 1, d, 12)), 'UTC', 'd MMM yyyy')
 }
+
+/** ISO UTC → "2026-10-14T16:00", the wall-clock value for a datetime-local input in `tz`. */
+export function toZonedInputValue(iso: string, tz: string = DEFAULT_TIMEZONE): string {
+  return formatInTimeZone(toDate(iso), tz, "yyyy-MM-dd'T'HH:mm")
+}
+
+/** A datetime-local value read as wall-clock time in `tz` → ISO UTC. Null when incomplete. */
+export function fromZonedInputValue(value: string, tz: string = DEFAULT_TIMEZONE): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null
+  return fromZonedTime(`${value}:00`, tz).toISOString()
+}

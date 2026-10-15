@@ -1,5 +1,8 @@
 import { AlertTriangleIcon, CheckIcon, ClockIcon, XIcon } from 'lucide-react'
+import type { Severity } from '@/lib/api/types'
 import { cn } from '@/lib/utils/cn'
+
+export type { Severity }
 
 export type Tone = 'neutral' | 'info' | 'ok' | 'warn' | 'bad'
 /** The non-colour cue every pill carries. */
@@ -32,6 +35,23 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
   pending: { label: 'Pending', tone: 'warn', mark: 'hollow' },
   acknowledged: { label: 'Acknowledged', tone: 'ok', mark: 'check' },
   invited: { label: 'Invited', tone: 'warn', mark: 'hollow' },
+  // Privacy (M3)
+  signed_off: { label: 'Signed off', tone: 'ok', mark: 'check' },
+  in_progress: { label: 'In progress', tone: 'warn', mark: 'dot' },
+  received: { label: 'Received', tone: 'info', mark: 'hollow' },
+  identity_verified: { label: 'Identity verified', tone: 'info', mark: 'dot' },
+  responded: { label: 'Responded', tone: 'ok', mark: 'check' },
+  closed: { label: 'Closed', tone: 'neutral', mark: 'check' },
+  reported: { label: 'Reported', tone: 'bad', mark: 'alert' },
+  triage: { label: 'Triage', tone: 'warn', mark: 'dot' },
+  contained: { label: 'Contained', tone: 'info', mark: 'dot' },
+  notified: { label: 'Notified', tone: 'ok', mark: 'check' },
+  open: { label: 'Open', tone: 'warn', mark: 'dot' },
+  registered: { label: 'Registered', tone: 'ok', mark: 'check' },
+  renewal_due: { label: 'Renewal due', tone: 'warn', mark: 'clock' },
+  expired: { label: 'Expired', tone: 'bad', mark: 'clock' },
+  valid: { label: 'Valid', tone: 'ok', mark: 'check' },
+  expiring: { label: 'Expiring', tone: 'warn', mark: 'clock' },
 }
 
 const TONE_CLASSES: Record<Tone, { pill: string; dot: string }> = {
@@ -92,8 +112,6 @@ export function StatusPill({
     </span>
   )
 }
-
-export type Severity = 'low' | 'medium' | 'high' | 'critical'
 
 const SEVERITY: Record<Severity, { label: string; tone: Tone; bars: number }> = {
   low: { label: 'Low', tone: 'neutral', bars: 1 },

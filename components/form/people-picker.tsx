@@ -62,7 +62,7 @@ export function PeoplePicker({
               <span className="truncate">{selected.name}</span>
             </>
           ) : (
-            <span className="text-muted/80">{isLoading ? 'Loading people…' : placeholder}</span>
+            <span className="text-muted">{isLoading ? 'Loading people…' : placeholder}</span>
           )}
           <ChevronsUpDownIcon className="ml-auto size-4 shrink-0 text-muted" aria-hidden="true" />
         </button>

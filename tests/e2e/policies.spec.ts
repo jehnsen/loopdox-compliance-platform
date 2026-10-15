@@ -188,8 +188,13 @@ test('editors can reorder the tree from the keyboard menu', async ({ page }) => 
   await tree.getByRole('button', { name: 'Reorder ITD-006' }).click()
   await page.getByRole('menuitem', { name: 'Move down' }).click()
   await expect(page.getByText('Moved ITD-006 Information Security Policy')).toBeVisible()
-  const order = await tree.locator('a .font-mono').allTextContents()
-  expect(order.indexOf('ITD-007')).toBeLessThan(order.indexOf('ITD-006'))
+  // The toast shows on success; the tree updates when its query refetches just after.
+  await expect
+    .poll(async () => {
+      const order = await tree.locator('a .font-mono').allTextContents()
+      return order.indexOf('ITD-007') < order.indexOf('ITD-006')
+    })
+    .toBe(true)
 })
 
 test('the library filters by review state and keeps filters in the URL', async ({ page }) => {

@@ -452,3 +452,560 @@ export interface Control extends BaseEntity {
   evidenceFrequency: 'continuous' | 'monthly' | 'quarterly' | 'annually'
   status: ControlStatus
 }
+
+// ---------------------------------------------------------------------------
+// Shared record plumbing (M3): files, links, masked values
+// ---------------------------------------------------------------------------
+
+/** 1–5 rating used for likelihood and impact. */
+export type Score = 1 | 2 | 3 | 4 | 5
+
+export type Severity = 'low' | 'medium' | 'high' | 'critical'
+
+/** Days-to-deadline state shared by DSRs, agreements and registrations. */
+export type DueState = 'ok' | 'due_soon' | 'overdue'
+
+/** Metadata for an uploaded file. Contents are fetched from GET /files/:id. */
+export interface FileRef {
+  id: string
+  name: string
+  /** Bytes. */
+  size: number
+  contentType: string
+  uploadedAt: ISODateTime
+  uploadedBy: string
+}
+
+/** Records that can be linked to each other and shown in LinkedRecords. */
+export type RecordType =
+  'document' | 'processing_activity' | 'pia' | 'dsr' | 'incident' | 'agreement' | 'system' | 'risk'
+
+/** A pointer to any record: enough to render an ID chip, a title and a link. */
+export interface RecordRef {
+  type: RecordType
+  id: string
+  /** Display ID: PA-002, DSR-2026-0012. */
+  ref: string | null
+  title: string
+  /** App path: "/3rdloop/privacy/processing/pa_002". */
+  href: string
+  status: string | null
+}
+
+export interface LinkedRecord extends RecordRef {
+  /** "to": this record holds the link. "from": the other record links to this one. */
+  direction: 'to' | 'from'
+}
+
+export interface LinkGroup {
+  type: RecordType
+  /** Plural label: "Processing records". */
+  label: string
+  items: LinkedRecord[]
+  /** The caller may add or remove links in this group. */
+  linkable: boolean
+}
+
+/** GET /links?type&id: every relation the record can have on this plan, including empty ones. */
+export interface LinksResponse {
+  groups: LinkGroup[]
+}
+
+export interface LinkRequest {
+  from: { type: RecordType; id: string }
+  to: { type: RecordType; id: string }
+}
+
+/** Fields served masked (`•••• 4821`) and revealed one at a time through /sensitive/reveal. */
+export type SensitiveField = 'requesterName' | 'requesterContact'
+
+export interface RevealRequest {
+  targetType: 'dsr'
+  targetId: string
+  field: SensitiveField
+}
+
+export interface RevealResponse {
+  value: string
+}
+
+// ---------------------------------------------------------------------------
+// Privacy: processing records (M3)
+// ---------------------------------------------------------------------------
+
+export type LegalBasis =
+  | 'consent'
+  | 'contract'
+  | 'legal_obligation'
+  | 'vital_interests'
+  | 'public_authority'
+  | 'legitimate_interests'
+
+export type ProcessingStatus = 'draft' | 'approved' | 'retired'
+
+export interface DataCategory {
+  name: string
+  /** Sensitive personal information (health, government IDs, and similar). */
+  sensitive: boolean
+}
+
+/**
+ * internal: a team inside the organisation. third_party: an outside organisation that
+ * receives the data under contract, so it needs an agreement. authority: a government
+ * body receiving statutory filings (no agreement expected).
+ */
+export type RecipientKind = 'internal' | 'third_party' | 'authority'
+
+export interface Recipient {
+  name: string
+  kind: RecipientKind
+}
+
+export type ProcessingWarning = 'no_pia' | 'no_agreement' | 'no_retention'
+
+export interface ProcessingActivity extends BaseEntity {
+  /** "PA-002" */
+  ref: string
+  name: string
+  purpose: string
+  legalBasis: LegalBasis
+  dataSubjects: string[]
+  dataCategories: DataCategory[]
+  /** Where the data comes from. */
+  sources: string
+  recipients: Recipient[]
+  crossBorder: { transfers: boolean; countries: string[] }
+  /** Free text, e.g. "5 years after the engagement ends". null = not set. */
+  retention: string | null
+  systemIds: string[]
+  agreementIds: string[]
+  owner: string
+  status: ProcessingStatus
+}
+
+export interface ProcessingActivitySummary extends ProcessingActivity {
+  ownerName: string
+  updatedByName: string
+  /** The PIA covering this activity (signed off first, then the latest), or null. */
+  piaId: string | null
+  piaRef: string | null
+  piaStatus: PiaStatus | null
+  hasSensitive: boolean
+  warnings: ProcessingWarning[]
+  /** Third-party recipients with no linked agreement whose counterparty matches their name. */
+  recipientsWithoutAgreement: string[]
+}
+
+export interface ProcessingActivityInput {
+  name: string
+  purpose: string
+  legalBasis: LegalBasis
+  dataSubjects: string[]
+  dataCategories: DataCategory[]
+  sources: string
+  recipients: Recipient[]
+  crossBorder: { transfers: boolean; countries: string[] }
+  retention: string | null
+  owner: string
+  status: ProcessingStatus
+}
+
+// ---------------------------------------------------------------------------
+// Privacy: impact assessments (M3)
+// ---------------------------------------------------------------------------
+
+export type PiaDecision = 'proceed' | 'proceed_with_conditions' | 'do_not_proceed'
+export type PiaStatus = 'in_progress' | 'signed_off'
+export type DataFlowStage = 'collection' | 'use' | 'storage' | 'sharing' | 'disposal'
+/** Wizard steps: 1 Scope · 2 Data flows · 3 Risks · 4 Mitigations · 5 Decision. */
+export type PiaStep = 1 | 2 | 3 | 4 | 5
+
+export interface PiaRisk {
+  id: string
+  description: string
+  likelihood: Score
+  impact: Score
+  mitigation: string
+}
+
+export interface Pia extends BaseEntity {
+  /** "PIA-002" */
+  ref: string
+  processingActivityId: string
+  scope: string
+  dataFlows: Record<DataFlowStage, string>
+  risks: PiaRisk[]
+  /** Highest likelihood × impact among the risks; null with no risks. */
+  overallScore: number | null
+  decision: PiaDecision | null
+  /** Required when the decision is "proceed with conditions". */
+  conditions: string | null
+  signedOffBy: string | null
+  signedOffAt: ISODateTime | null
+  status: PiaStatus
+  /** Furthest step saved, so the wizard resumes there. */
+  currentStep: PiaStep
+}
+
+export interface PiaSummary extends Pia {
+  processingActivityRef: string | null
+  processingActivityName: string | null
+  signedOffByName: string | null
+  updatedByName: string
+}
+
+export interface CreatePiaRequest {
+  processingActivityId: string
+  scope: string
+}
+
+export interface UpdatePiaRequest {
+  ifVersion: number
+  processingActivityId?: string
+  scope?: string
+  dataFlows?: Record<DataFlowStage, string>
+  risks?: PiaRisk[]
+  currentStep?: PiaStep
+}
+
+export interface SignOffPiaRequest {
+  ifVersion: number
+  decision: PiaDecision
+  conditions?: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Privacy: data subject requests (M3)
+// ---------------------------------------------------------------------------
+
+export type DsrType = 'access' | 'correction' | 'erasure' | 'objection' | 'portability' | 'other'
+export type DsrStatus = 'received' | 'identity_verified' | 'in_progress' | 'responded' | 'closed'
+export type DsrChannel = 'email' | 'web_form' | 'phone' | 'letter' | 'in_person' | 'other'
+export type DsrOutcome = 'granted' | 'partially_granted' | 'denied' | 'withdrawn'
+
+export interface DsrEvent {
+  id: string
+  status: DsrStatus
+  at: ISODateTime
+  by: string
+  byName: string
+  note: string | null
+}
+
+export interface Dsr extends BaseEntity {
+  /** "DSR-2026-0012" */
+  ref: string
+  type: DsrType
+  /** Always masked in responses. Reveal through /sensitive/reveal. */
+  requesterName: string
+  /** Always masked in responses. */
+  requesterContact: string
+  channel: DsrChannel
+  /** What the requester asked for. Shouldn't repeat their identifiers. */
+  description: string
+  /** Calendar date (tenant timezone). */
+  receivedAt: ISODate
+  /** receivedAt + the org's DSR response period. Calendar date. */
+  dueAt: ISODate
+  identityVerified: boolean
+  assignee: string | null
+  status: DsrStatus
+  outcome: DsrOutcome | null
+  responseNotes: string
+  processingActivityIds: string[]
+  files: FileRef[]
+}
+
+export interface DsrSummary extends Dsr {
+  assigneeName: string | null
+  /** null once responded or closed. */
+  dueState: DueState | null
+  /** Calendar days until dueAt; negative when overdue. */
+  daysLeft: number
+}
+
+export interface DsrDetail extends DsrSummary {
+  /** Oldest first. */
+  events: DsrEvent[]
+}
+
+export interface CreateDsrRequest {
+  type: DsrType
+  requesterName: string
+  requesterContact: string
+  channel: DsrChannel
+  description: string
+  receivedAt: ISODate
+  assignee: string | null
+  processingActivityIds: string[]
+}
+
+export interface UpdateDsrRequest {
+  ifVersion: number
+  type?: DsrType
+  channel?: DsrChannel
+  description?: string
+  assignee?: string | null
+  responseNotes?: string
+}
+
+export interface DsrTransitionRequest {
+  ifVersion: number
+  status: DsrStatus
+  note?: string
+  /** Required when moving to "responded". */
+  outcome?: DsrOutcome
+}
+
+// ---------------------------------------------------------------------------
+// Privacy: incidents and breaches (M3)
+// ---------------------------------------------------------------------------
+
+export type IncidentStatus = 'reported' | 'triage' | 'contained' | 'notified' | 'closed'
+
+export interface NoticeDraft {
+  subject: string
+  body: string
+}
+
+export interface IncidentNotices {
+  /** Notice to the National Privacy Commission. */
+  npc: NoticeDraft
+  /** Notice to affected data subjects. */
+  subjects: NoticeDraft
+  draftedAt: ISODateTime
+  draftedBy: string
+  draftedByName: string
+  signedOffBy: string | null
+  signedOffByName: string | null
+  signedOffAt: ISODateTime | null
+}
+
+export interface Incident extends BaseEntity {
+  /** "INC-2026-0003" */
+  ref: string
+  title: string
+  description: string
+  /** When the organisation learned of it. The 72-hour clock runs from here. */
+  discoveredAt: ISODateTime
+  reportedBy: string
+  /** "What's affected", in the reporter's words. */
+  affectedSummary: string
+  /** null until triage. */
+  severity: Severity | null
+  personalDataInvolved: boolean
+  affectedCount: number | null
+  processingActivityIds: string[]
+  systemIds: string[]
+  /** Policies changed because of this incident. */
+  documentIds: string[]
+  /** Risks raised from the post-incident review. */
+  riskIds: string[]
+  /** null = not decided yet. */
+  notificationRequired: boolean | null
+  notificationRationale: string | null
+  /** discoveredAt + 72 hours when personal data is involved; null otherwise. */
+  notificationDeadline: ISODateTime | null
+  npcNotifiedAt: ISODateTime | null
+  /** Reference the NPC gave when the notification was received. */
+  npcReference: string | null
+  subjectsNotifiedAt: ISODateTime | null
+  containedAt: ISODateTime | null
+  closedAt: ISODateTime | null
+  status: IncidentStatus
+  postIncidentReview: string | null
+  notices: IncidentNotices | null
+}
+
+export interface IncidentSummary extends Incident {
+  reportedByName: string
+  updatedByName: string
+}
+
+/** POST /incidents returns a receipt: reporters without privacy.read can't open the record. */
+export interface IncidentReceipt {
+  id: string
+  ref: string
+  title: string
+  notificationDeadline: ISODateTime | null
+  createdAt: ISODateTime
+}
+
+export interface ReportIncidentRequest {
+  title: string
+  description: string
+  discoveredAt: ISODateTime
+  affectedSummary: string
+  personalDataInvolved: boolean
+}
+
+export interface UpdateIncidentRequest {
+  ifVersion: number
+  title?: string
+  description?: string
+  discoveredAt?: ISODateTime
+  affectedSummary?: string
+  severity?: Severity | null
+  personalDataInvolved?: boolean
+  affectedCount?: number | null
+  notificationRequired?: boolean | null
+  notificationRationale?: string | null
+  status?: Exclude<IncidentStatus, 'notified'>
+  postIncidentReview?: string | null
+}
+
+export interface UpdateNoticesRequest {
+  ifVersion: number
+  npc?: NoticeDraft
+  subjects?: NoticeDraft
+}
+
+export interface RecordNotificationRequest {
+  ifVersion: number
+  kind: 'npc' | 'subjects'
+  at: ISODateTime
+  reference?: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Privacy: agreements, registration, training (M3)
+// ---------------------------------------------------------------------------
+
+export type AgreementType = 'dpa' | 'data_sharing' | 'nda' | 'msa'
+export type AgreementRole = 'we_are_processor' | 'we_are_controller'
+
+export interface Agreement extends BaseEntity {
+  /** "AGR-003" */
+  ref: string
+  counterparty: string
+  type: AgreementType
+  role: AgreementRole
+  signedAt: ISODate
+  /** null = no fixed term. */
+  renewsAt: ISODate | null
+  fileId: string | null
+  owner: string
+  notes: string
+}
+
+export interface AgreementSummary extends Agreement {
+  ownerName: string
+  updatedByName: string
+  file: FileRef | null
+  /** Processing records that list this agreement. */
+  processingActivityIds: string[]
+  /** due_soon = renews within 30 days; overdue = renewal date passed. null with no renewal date. */
+  renewalState: DueState | null
+  daysToRenewal: number | null
+}
+
+export interface AgreementInput {
+  counterparty: string
+  type: AgreementType
+  role: AgreementRole
+  signedAt: ISODate
+  renewsAt: ISODate | null
+  fileId: string | null
+  owner: string
+  notes: string
+  processingActivityIds: string[]
+}
+
+export type RegistrationStatus = 'registered' | 'renewal_due' | 'expired'
+
+export interface Registration extends BaseEntity {
+  registrar: 'NPC'
+  reference: string
+  dpoName: string
+  dpoEmail: string
+  registeredAt: ISODate
+  renewsAt: ISODate
+  notes: string
+}
+
+export interface RegistrationSummary extends Registration {
+  /** renewal_due = renews within 30 days. */
+  status: RegistrationStatus
+  daysToRenewal: number
+}
+
+export interface RegistrationInput {
+  reference: string
+  dpoName: string
+  dpoEmail: string
+  registeredAt: ISODate
+  renewsAt: ISODate
+  notes: string
+}
+
+export type TrainingState = 'valid' | 'expiring' | 'expired'
+
+export interface TrainingRecord extends BaseEntity {
+  userId: string
+  course: string
+  completedAt: ISODate
+  /** null = doesn't expire. */
+  expiresAt: ISODate | null
+}
+
+export interface TrainingRecordSummary extends TrainingRecord {
+  userName: string
+  /** expiring = expires within 30 days. */
+  state: TrainingState
+}
+
+export interface TrainingRecordInput {
+  userId: string
+  course: string
+  completedAt: ISODate
+  expiresAt: ISODate | null
+}
+
+// ---------------------------------------------------------------------------
+// Security records referenced by privacy (full module in M5)
+// ---------------------------------------------------------------------------
+
+export type SystemType =
+  'server' | 'cloud_account' | 'repository' | 'domain' | 'saas' | 'database' | 'other'
+
+export interface System extends BaseEntity {
+  name: string
+  type: SystemType
+  provider: string
+  owner: string
+  classification: Classification
+  hosting: string
+  holdsPersonalData: boolean
+  notes: string
+}
+
+export type RiskTreatment = 'mitigate' | 'accept' | 'transfer' | 'avoid'
+export type RiskStatus = 'open' | 'closed'
+
+export interface Risk extends BaseEntity {
+  /** "RISK-013" */
+  ref: string
+  title: string
+  description: string
+  likelihood: Score
+  impact: Score
+  inherentScore: number
+  treatment: RiskTreatment
+  residualScore: number | null
+  owner: string
+  documentIds: string[]
+  controlIds: string[]
+  reviewAt: ISODate
+  status: RiskStatus
+}
+
+/** M3 creates risks from a post-incident review; the register arrives in M5. */
+export interface CreateRiskRequest {
+  title: string
+  description: string
+  likelihood: Score
+  impact: Score
+  owner: string
+  /** Links the new risk to this incident. */
+  incidentId?: string
+}

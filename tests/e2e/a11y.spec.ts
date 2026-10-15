@@ -135,3 +135,54 @@ for (const scheme of ['light', 'dark'] as const) {
     })
   })
 }
+
+for (const scheme of ['light', 'dark'] as const) {
+  test.describe(`privacy, ${scheme} mode`, () => {
+    test.use({ colorScheme: scheme })
+
+    test('registers, records and forms', async ({ page }) => {
+      // 18 pages, each scanned by axe.
+      test.setTimeout(240_000)
+      await signInAs(page, USERS.jehnsen, '/3rdloop/privacy/processing')
+      for (const [path, ready] of [
+        ['/3rdloop/privacy/processing', 'table'],
+        ['/3rdloop/privacy/processing/pa_002', 'heading'],
+        ['/3rdloop/privacy/processing/pa_002/edit', 'textbox'],
+        ['/3rdloop/privacy/pia', 'table'],
+        ['/3rdloop/privacy/pia/pia_001', 'table'],
+        ['/3rdloop/privacy/pia/pia_002', 'table'],
+        ['/3rdloop/privacy/requests', 'table'],
+        ['/3rdloop/privacy/requests/dsr_2026_0012', 'heading'],
+        ['/3rdloop/privacy/requests/new', 'textbox'],
+        ['/3rdloop/privacy/incidents', 'table'],
+        ['/3rdloop/privacy/incidents/inc_2026_0003', 'timer'],
+        ['/3rdloop/privacy/incidents/inc_2026_0002', 'timer'],
+        ['/3rdloop/privacy/incidents/report', 'textbox'],
+        ['/3rdloop/privacy/agreements', 'table'],
+        ['/3rdloop/privacy/agreements/agr_001', 'heading'],
+        ['/3rdloop/privacy/agreements/new', 'textbox'],
+        ['/3rdloop/privacy/registration', 'heading'],
+        ['/3rdloop/privacy/training', 'table'],
+      ] as const) {
+        await page.goto(path)
+        await expect(page.getByRole(ready).first()).toBeVisible()
+        await expectNoViolations(page, path)
+      }
+    })
+
+    test('notices, link dialog and approver view', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen, '/3rdloop/privacy/incidents/inc_2026_0003')
+      await page.getByRole('button', { name: 'Draft notices' }).click()
+      await expect(page.getByTestId('notice-npc')).toBeVisible()
+      await expectNoViolations(page, 'drafted notices')
+      await page.getByRole('button', { name: 'Link existing' }).click()
+      await page.getByRole('menuitem', { name: 'System' }).click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'link dialog')
+
+      await signInAs(page, USERS.michael, '/3rdloop/privacy/incidents/inc_2026_0003')
+      await expect(page.getByTestId('notices')).toBeVisible()
+      await expectNoViolations(page, 'approver incident view')
+    })
+  })
+}

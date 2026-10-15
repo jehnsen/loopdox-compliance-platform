@@ -10,12 +10,13 @@ This repo is the **frontend only** (Next.js App Router). The FastAPI backend is 
 
 ## Status
 
-| Milestone                                                                                                      | State   |
-| -------------------------------------------------------------------------------------------------------------- | ------- |
-| M1 Foundation: shell, auth, mock API, permissions, entitlements                                                | ✅ Done |
-| M2 Policies: library, read view, editor, versions, diff, approval workflow, acknowledgements                   | ✅ Done |
-| M3 Privacy                                                                                                     | Next    |
-| M4 Overview · M5 Security · M6 Evidence · M7 Ask & Questionnaires · M8 AI Governance · M9 Settings & hardening | Planned |
+| Milestone                                                                                                                              | State   |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| M1 Foundation: shell, auth, mock API, permissions, entitlements                                                                        | ✅ Done |
+| M2 Policies: library, read view, editor, versions, diff, approval workflow, acknowledgements                                           | ✅ Done |
+| M3 Privacy: processing records, PIA wizard, DSRs, incidents with the 72-hour clock and notices, agreements, NPC registration, training | ✅ Done |
+| M4 Overview dashboard, global search and notifications                                                                                 | Next    |
+| M5 Security · M6 Evidence · M7 Ask & Questionnaires · M8 AI Governance · M9 Settings & hardening                                       | Planned |
 
 Modules not built yet already appear in the navigation. They open a placeholder that applies the real permission check and plan gate.
 
@@ -105,6 +106,25 @@ Policy titles are in `mocks/seed/policies.ts` (placeholders except ITD-006). Pol
 | `ITD-015`                              | Draft v3 on top of approved v2 (staff still see v2)                             |
 | `/3rdloop/my-policies` as Staff Member | ITD-008 and ITD-012 waiting to be acknowledged                                  |
 
+### Privacy to try
+
+Signed in as Jehnsen Enrique (admin and DPO) unless noted. Privacy data lives in `mocks/seed/privacy.ts`; the 10 systems that records link to are in `mocks/seed/systems.ts`.
+
+| Where                                                        | What you'll see                                                                                                                        |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `/3rdloop/privacy/incidents/inc_2026_0003`                   | Open breach whose 72-hour clock started 30 hours before seeding. Triage it, link records (try the suggestions), then **Draft notices** |
+| Same incident, as Michael Manabat                            | **Sign off notices**; then back as Jehnsen, **Record NPC notification** stops the clock                                                |
+| `/3rdloop/privacy/incidents/inc_2026_0002`                   | Closed breach, notified on time, with signed-off notices and a post-incident review                                                    |
+| Top bar → **Report an incident** as Staff Member             | Staff can report (and get a receipt) but can't open the register                                                                       |
+| `/3rdloop/privacy/processing`                                | Register with warning chips (No PIA, No agreement for recipient, Retention not set), sensitive data flags, CSV export                  |
+| `/3rdloop/privacy/processing/pa_002`                         | Linked records in both directions: systems, agreement, PIA, DSR, incident                                                              |
+| `/3rdloop/privacy/pia/pia_002`                               | PIA wizard paused at step 3 (risks), with the live 5×5 matrix                                                                          |
+| `/3rdloop/privacy/requests/dsr_2026_0012`                    | DSR due in 2 days. **Reveal** the masked requester (shown for 30 s, audited); Michael Manabat can't                                    |
+| `/3rdloop/privacy/agreements`                                | AGR-001 renews within 30 days                                                                                                          |
+| `/3rdloop/privacy/registration`, `/3rdloop/privacy/training` | NPC registration card; training matrix with expired, expiring and missing courses                                                      |
+| `/sample-clinic/privacy/registration` as Dra. Liza Santos    | Registration renewal due; on Starter there's no Systems group in linked records                                                        |
+| As External Auditor                                          | Only finalised privacy records: approved processing records, signed-off PIAs, closed DSRs and incidents                                |
+
 ## Auth (backend-for-frontend)
 
 - `/api/auth/login`, `/logout`, `/forgot-password`, `/reset-password` and `/invites/:token[/accept]` exchange credentials with the backend and set **httpOnly, SameSite=Lax** cookies (Secure in production). Tokens never reach browser JavaScript.
@@ -133,9 +153,11 @@ app/                      routes (App Router)
 components/ui/            shadcn-style primitives, restyled to our tokens
 components/shell/         AppShell, Sidebar, TopBar, OrgSwitcher, CommandPalette, NotificationsBell, UserMenu, IdleTimeout
 components/               shared blocks: PageHeader, MetadataStrip, StatusPill, chips, states, UpgradeCard, ConfirmDialog, Gate…
-features/<module>/        module components, hooks and forms (policies/ in M2)
+features/<module>/        module components, hooks and forms (policies/ in M2, privacy/ in M3)
 components/data-table/    DataTable (server paging/sort/filters in the URL), FacetFilter
 components/markdown/      MarkdownView (sanitised, [[ID]] links), MarkdownEditor (CodeMirror, lazy)
+components/form/          FormField, PeoplePicker, RecordPicker, TagInput, DateField (timezone-aware), ScoreInput
+components/               … CountdownClock, SensitiveValue, LinkedRecords, FileDropzone, RiskMatrix (M3)
 lib/api/                  client.ts, types.ts (the contract), query-keys.ts, hooks/
 lib/auth/                 permissions.ts, can.tsx, cookies.ts, refresh.ts
 lib/server/               server-only helpers: backend caller, session, origin check
@@ -143,10 +165,14 @@ lib/schemas/              zod schemas shared by forms and the mock API
 lib/utils/                dates (timezone-aware), format, ids, list params, hooks
 lib/markdown/             wiki-link remark plugin, TOC extraction, sanitize schema
 lib/diff.ts               line/word diff used by DiffView
+lib/countdown.ts          72-hour breach clock rules (thresholds, text), unit-tested
+lib/links.ts              which records link to which, and which side stores the link
+lib/privacy.ts, risk.ts   privacy labels and due-date rules; 5×5 risk scoring
+lib/files.ts              upload size/type rules
 lib/i18n/en.ts            UI strings
 lib/entitlements.ts       plan features
 lib/nav.ts                sidebar and command-palette navigation
-mocks/                    mock API: dispatch, router, handlers/, seed/, store.ts
+mocks/                    mock API: dispatch, router, handlers/, seed/, store.ts, records.ts (link registry), notices.ts (notice drafts)
 proxy.ts                  auth redirect, token refresh, CSP nonce
 docs/                     spec, API contract, decisions
 tests/unit/               Vitest

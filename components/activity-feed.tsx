@@ -27,13 +27,61 @@ const ACTION_LABELS: Record<string, (d: Record<string, unknown>) => string> = {
     `sent acknowledgement reminders to ${String(d.count)} people`,
   'document.moved': () => 'moved this page',
   'document.deleted': () => 'deleted this page',
+  // Privacy (M3)
+  'processing_activity.created': () => 'created this record',
+  'processing_activity.updated': (d) =>
+    d.statusTo ? `changed the status to ${String(d.statusTo)}` : 'updated the details',
+  'pia.created': () => 'started this assessment',
+  'pia.updated': (d) => `saved progress (step ${String(d.step)})`,
+  'pia.signed_off': (d) => `signed off: ${String(d.decision).replace(/_/g, ' ')}`,
+  'dsr.created': () => 'logged this request',
+  'dsr.updated': (d) =>
+    d.assignee ? `assigned it to ${String(d.assignee)}` : 'updated the details',
+  'dsr.identity_verified': () => 'verified the requester’s identity',
+  'dsr.in_progress': () => 'started work on the request',
+  'dsr.responded': (d) =>
+    `responded${d.outcome ? ` (${String(d.outcome).replace(/_/g, ' ')})` : ''}`,
+  'dsr.closed': () => 'closed the request',
+  'dsr.file_attached': (d) => `attached ${String(d.name)}`,
+  'dsr.file_removed': (d) => `removed ${String(d.name)}`,
+  'sensitive.revealed': (d) =>
+    `revealed the ${d.field === 'requesterName' ? 'requester’s name' : 'requester’s contact'}`,
+  'incident.reported': () => 'reported this incident',
+  'incident.triaged': (d) =>
+    d.notificationRequired === true
+      ? 'decided NPC notification is required'
+      : d.notificationRequired === false
+        ? 'decided notification isn’t required'
+        : 'updated the triage',
+  'incident.updated': () => 'updated the details',
+  'incident.contained': () => 'marked it contained',
+  'incident.closed': () => 'closed the incident',
+  'incident.notices_drafted': () => 'drafted the notices',
+  'incident.notices_edited': (d) =>
+    d.signOffCleared ? 'edited the notices, clearing the sign-off' : 'edited the notices',
+  'incident.notices_signed_off': () => 'signed off the notices',
+  'incident.npc_notified': (d) =>
+    `recorded the NPC notification${d.reference ? ` (${String(d.reference)})` : ''}${d.late ? ', after the deadline' : ''}`,
+  'incident.subjects_notified': () => 'recorded that data subjects were notified',
+  'agreement.created': () => 'added this agreement',
+  'agreement.updated': () => 'updated the details',
+  'agreement.renewed': (d) => `recorded a renewal to ${String(d.renewsAt)}`,
+  'registration.created': () => 'added the registration',
+  'registration.updated': (d) =>
+    d.dpoName ? `changed the DPO on record to ${String(d.dpoName)}` : 'updated the registration',
+  'registration.renewed': (d) => `recorded a renewal to ${String(d.renewsAt)}`,
+}
+
+function linkLabel(d: Record<string, unknown>): string {
+  return [d.ref, d.title].filter((v) => typeof v === 'string' && v).join(' ')
 }
 
 export function describeAction(event: AuditEvent): string {
   const fn = ACTION_LABELS[event.action]
-  return fn
-    ? fn(event.details)
-    : (event.action.split('.').at(-1)?.replace(/_/g, ' ') ?? event.action)
+  if (fn) return fn(event.details)
+  if (event.action.endsWith('.linked')) return `linked ${linkLabel(event.details)}`
+  if (event.action.endsWith('.unlinked')) return `unlinked ${linkLabel(event.details)}`
+  return event.action.split('.').at(-1)?.replace(/_/g, ' ') ?? event.action
 }
 
 /** Audit events for one record, newest first. */
@@ -60,7 +108,7 @@ export function ActivityFeed({ targetType, targetId }: { targetType: string; tar
       <EmptyState
         icon={HistoryIcon}
         title="No activity yet"
-        body="Edits, approvals and acknowledgements appear here."
+        body="Changes to this record appear here, with who made them and when."
       />
     )
   }

@@ -1,18 +1,22 @@
 import { formatInTimeZone } from 'date-fns-tz'
 import type { AuditEvent, Notification } from '@/lib/api/types'
+import { draftNotices } from '@/mocks/notices'
 import type { MockDB } from '@/mocks/store'
 import { seedControls } from '@/mocks/seed/controls'
 import { seedDocuments } from '@/mocks/seed/documents'
+import { seedPrivacy } from '@/mocks/seed/privacy'
+import { seedSystems } from '@/mocks/seed/systems'
 import { seedInvites, seedMemberships, seedOrgs, seedUsers } from '@/mocks/seed/tenants'
 
 /** Bump when seed data changes shape; a persisted .mock-db.json with an older version is reseeded. */
-export const SEED_VERSION = 2
+export const SEED_VERSION = 3
 
 const HOUR = 3_600_000
 
 export function seedDatabase(now: Date): MockDB {
   const ago = (hours: number) => new Date(now.getTime() - hours * HOUR).toISOString()
   const month = formatInTimeZone(now, 'Asia/Manila', 'yyyy-MM')
+  const year = formatInTimeZone(now, 'Asia/Manila', 'yyyy')
 
   const notifications: Notification[] = [
     {
@@ -20,7 +24,7 @@ export function seedDatabase(now: Date): MockDB {
       orgId: 'org_3rdloop',
       userId: 'usr_jehnsen',
       type: 'deadline_breach',
-      title: 'INC-2026-0003: NPC notification due in 42 h',
+      title: `INC-${year}-0003: NPC notification due in 42 h`,
       body: 'Personal data may be involved. Decide whether notification is required.',
       href: '/3rdloop/privacy/incidents/inc_2026_0003',
       at: ago(2),
@@ -31,7 +35,7 @@ export function seedDatabase(now: Date): MockDB {
       orgId: 'org_3rdloop',
       userId: 'usr_jehnsen',
       type: 'deadline_dsr',
-      title: 'DSR-2026-0012 is due in 2 days',
+      title: `DSR-${year}-0012 is due in 2 days`,
       body: 'Access request from a data subject. Assigned to you.',
       href: '/3rdloop/privacy/requests/dsr_2026_0012',
       at: ago(20),
@@ -106,7 +110,9 @@ export function seedDatabase(now: Date): MockDB {
     doc.controlIds = controls.filter((c) => c.documentIds.includes(doc.id)).map((c) => c.id)
   }
 
-  return {
+  const privacy = seedPrivacy(now)
+
+  const db: MockDB = {
     meta: { seedVersion: SEED_VERSION, seededAt: now.toISOString() },
     orgs: seedOrgs(now),
     users: seedUsers(),
@@ -114,7 +120,7 @@ export function seedDatabase(now: Date): MockDB {
     invites: seedInvites(now),
     resetTokens: [],
     notifications,
-    auditEvents: [...auditEvents, ...docs.audit],
+    auditEvents: [...auditEvents, ...docs.audit, ...privacy.audit],
     usage: [
       { orgId: 'org_3rdloop', month, askQuestions: 412 },
       { orgId: 'org_sample_clinic', month, askQuestions: 38 },
@@ -124,5 +130,30 @@ export function seedDatabase(now: Date): MockDB {
     workflowEvents: docs.workflow,
     acknowledgements: docs.acknowledgements,
     controls,
+    systems: seedSystems(now),
+    risks: [],
+    files: privacy.files,
+    processingActivities: privacy.processingActivities,
+    pias: privacy.pias,
+    dsrs: privacy.dsrs,
+    incidents: privacy.incidents,
+    agreements: privacy.agreements,
+    registrations: privacy.registrations,
+    trainingRecords: privacy.trainingRecords,
   }
+
+  // The closed breach's notices were drafted from its linked records and signed off by the approver.
+  const closed = db.incidents.find((i) => i.id === 'inc_2026_0002')
+  const org = db.orgs.find((o) => o.id === 'org_3rdloop')
+  if (closed && org) {
+    const discovered = Date.parse(closed.discoveredAt)
+    closed.notices = {
+      ...draftNotices({ db, org, incident: closed }),
+      draftedAt: new Date(discovered + 30 * HOUR).toISOString(),
+      draftedBy: 'usr_jehnsen',
+      signedOffBy: 'usr_michael',
+      signedOffAt: new Date(discovered + 46 * HOUR).toISOString(),
+    }
+  }
+  return db
 }

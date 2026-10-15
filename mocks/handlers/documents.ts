@@ -7,7 +7,6 @@ import type {
   DocumentSummary,
   DocumentVersion,
   DocumentVersionSummary,
-  NotificationType,
   ReviewState,
   WorkflowEvent,
 } from '@/lib/api/types'
@@ -23,6 +22,7 @@ import {
 import { addMonthsToDate, daysUntil, todayInTz } from '@/lib/utils/dates'
 import { nextSeq } from '@/lib/utils/ids'
 import { audit } from '@/mocks/audit'
+import { activeMembers, csvCell, membersWith, notify, touch, userName } from '@/mocks/helpers'
 import {
   checkVersion,
   forbidden,
@@ -59,13 +59,8 @@ function orgDocs(ctx: OrgCtx): Document[] {
   return ctx.db.documents.filter((d) => d.orgId === ctx.org.id)
 }
 
-function visibleDocs(ctx: OrgCtx): Document[] {
+export function visibleDocs(ctx: OrgCtx): Document[] {
   return orgDocs(ctx).flatMap((d) => project(ctx, d) ?? [])
-}
-
-function userName(db: MockDB, id: string | null): string {
-  if (!id) return ''
-  return db.users.find((u) => u.id === id)?.name ?? 'Former member'
 }
 
 export function reviewStateOf(ctx: OrgCtx, doc: Document): ReviewState | null {
@@ -161,12 +156,6 @@ function today(ctx: OrgCtx): string {
   return todayInTz(ctx.org.timezone, ctx.now)
 }
 
-function touch(ctx: OrgCtx, doc: Document): void {
-  doc.version += 1
-  doc.updatedAt = ctx.now.toISOString()
-  doc.updatedBy = ctx.user.id
-}
-
 /** Sets the approval fields: effective today (tenant timezone), next review = today + cycle. */
 function markApproved(ctx: OrgCtx, doc: Document): void {
   const effective = today(ctx)
@@ -193,45 +182,6 @@ function addWorkflow(
     note,
     at: ctx.now.toISOString(),
   })
-}
-
-function notify(
-  ctx: OrgCtx,
-  userIds: string[],
-  type: NotificationType,
-  title: string,
-  body: string,
-  href: string,
-): void {
-  for (const userId of new Set(userIds)) {
-    if (userId === ctx.user.id) continue
-    ctx.db.notifications.push({
-      id: newId('ntf'),
-      orgId: ctx.org.id,
-      userId,
-      type,
-      title,
-      body,
-      href,
-      at: ctx.now.toISOString(),
-      readAt: null,
-    })
-  }
-}
-
-function activeMembers(ctx: OrgCtx) {
-  return ctx.db.memberships.filter(
-    (m) =>
-      m.orgId === ctx.org.id &&
-      m.status === 'active' &&
-      (!m.expiresAt || Date.parse(m.expiresAt) > ctx.now.getTime()),
-  )
-}
-
-function membersWith(ctx: OrgCtx, permission: Parameters<typeof can>[1]): string[] {
-  return activeMembers(ctx)
-    .filter((m) => can({ roles: m.roles }, permission))
-    .map((m) => m.userId)
 }
 
 function docHref(ctx: OrgCtx, doc: Document): string {
@@ -348,11 +298,6 @@ const listOptions = (ctx: OrgCtx) => ({
     },
   },
 })
-
-function csvCell(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value)
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-}
 
 // ---------------------------------------------------------------------------
 // Routes

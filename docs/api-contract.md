@@ -2,7 +2,7 @@
 
 The frontend defines this contract and the FastAPI backend implements it. TypeScript types for every request and response are in [`lib/api/types.ts`](../lib/api/types.ts), which is the source of truth. The in-repo mock API (`mocks/`) implements the same contract and is the reference behaviour.
 
-> **Status:** covers the endpoints the frontend uses up to **M2 (Policies)**. Each milestone adds its endpoints here.
+> **Status:** covers the endpoints the frontend uses up to **M3 (Privacy)**. Each milestone adds its endpoints here.
 
 ---
 
@@ -380,3 +380,144 @@ Filters: `framework`, `status` (`passing|failing|no_evidence|not_applicable`), `
 ## Search additions (M2)
 
 `GET /orgs/:org/search?q=` includes a `document` group ("Policies"). It matches docId, title and the text of the version the caller can read; results link to `/:org/policies/:id`.
+
+---
+
+## Privacy — M3
+
+Feature `privacy` on every route below (403 `feature_not_in_plan` otherwise). Types are in `lib/api/types.ts`; request bodies are validated with the zod schemas in `lib/schemas/privacy.ts` (400 `validation_error` with `fields`). Every write takes **`ifVersion`** where noted (409 on mismatch), increments `version`, and writes an audit event on the record (`targetType` = `processing_activity`, `pia`, `dsr`, `incident`, `agreement`, `registration`, `training_record`).
+
+### Visibility (backend must enforce)
+
+- Reads need `privacy.read`; writes need `privacy.edit` unless stated.
+- **Auditor-only** members see finalised records only: processing records with `status: "approved"`, PIAs with `status: "signed_off"`, DSRs and incidents with `status: "closed"`. Agreements, registrations and training records are always visible. Anything else is **404**.
+- DSR requester details are **never** returned in clear: `requesterName` and `requesterContact` are masked in every response (see Sensitive values). They never appear in search, titles, link titles or audit details.
+
+### Display references
+
+`PA-NNN`, `PIA-NNN`, `AGR-NNN` and `RISK-NNN` count per org. `DSR-YYYY-NNNN` and `INC-YYYY-NNNN` count per org and year (tenant timezone). Detail routes accept the ID or the reference.
+
+### Processing records
+
+| Endpoint                            | Notes                                                                                                                                                                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /processing-activities`        | `ListResponse<ProcessingActivitySummary>`. `q`: ref, name, purpose, owner. Filters: `status`, `owner`, `legalBasis`, `warning` (`no_pia,no_agreement,no_retention`), `sensitive` (`true`). Default sort `ref`. |
+| `GET /processing-activities/export` | CSV of the filtered register. `Content-Disposition: attachment; filename="processing-records-<org>-<date>.csv"`.                                                                                               |
+| `POST /processing-activities`       | Body `ProcessingActivityInput` → 201 summary. `retention: ""` is stored as `null`; `crossBorder.countries` is required when `transfers` is true. `owner` must be an active non-auditor member.                 |
+| `GET /processing-activities/:id`    | `ProcessingActivitySummary`.                                                                                                                                                                                   |
+| `PATCH /processing-activities/:id`  | Full `ProcessingActivityInput` + `ifVersion`.                                                                                                                                                                  |
+| `DELETE /processing-activities/:id` | 204. Only `draft` records with no PIA, DSR or incident linking to them (422 otherwise).                                                                                                                        |
+
+`ProcessingActivitySummary` adds: `ownerName`, `updatedByName`, `piaId`/`piaRef`/`piaStatus` (the signed-off PIA for this activity, else the latest), `hasSensitive`, `recipientsWithoutAgreement` (recipients with `kind: "third_party"` and no linked agreement whose `counterparty` equals their name, case-insensitive) and `warnings`:
+
+- `no_pia`: no PIA covers it. `no_agreement`: `recipientsWithoutAgreement` isn't empty. `no_retention`: `retention` is null. Retired records have no warnings.
+
+### Impact assessments (PIA)
+
+| Endpoint                  | Notes                                                                                                                                                                                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /pias`               | `ListResponse<PiaSummary>`. Filters `status` (`in_progress,signed_off`), `decision`, `processingActivityId`. Default sort `-updatedAt`.                                                                                                                                                                                |
+| `POST /pias`              | Body `{ processingActivityId, scope }` (wizard step 1) → 201, `status: "in_progress"`, `currentStep: 2`.                                                                                                                                                                                                               |
+| `GET /pias/:id`           | `PiaSummary` (adds `processingActivityRef`, `processingActivityName`, `signedOffByName`, `updatedByName`).                                                                                                                                                                                                             |
+| `PATCH /pias/:id`         | `UpdatePiaRequest`: any of `processingActivityId`, `scope`, `dataFlows`, `risks`, `currentStep`, plus `ifVersion`. `currentStep` only moves forward (the furthest step saved). Recomputes `overallScore` = max(likelihood × impact), or null with no risks. 422 once signed off.                                       |
+| `POST /pias/:id/sign-off` | `{ ifVersion, decision, conditions? }`. `conditions` (3+ characters) is required for `proceed_with_conditions`. 422 without at least one risk, or while any risk's `mitigation` is shorter than 3 characters. Sets `signedOffBy/At`, `status: "signed_off"`, `currentStep: 5`; notifies the processing record's owner. |
+| `DELETE /pias/:id`        | 204. In-progress PIAs only.                                                                                                                                                                                                                                                                                            |
+
+### Data subject requests
+
+| Endpoint                         | Notes                                                                                                                                                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /dsrs`                      | `ListResponse<DsrSummary>`. `q`: ref, type, assignee. Filters `status`, `type`, `assignee` (user IDs or `none`), `due` (`overdue,due_soon,ok`), `open=true`, `processingActivityId`. Default sort `dueAt`.                                                               |
+| `POST /dsrs`                     | `CreateDsrRequest` → 201 `DsrDetail`. `receivedAt` is a calendar date, not after today (tenant timezone). Sets `dueAt` = `receivedAt` + `org.settings.dsrResponseDays` days, `status: "received"`, the first timeline event, and notifies the assignee (`deadline_dsr`). |
+| `GET /dsrs/:id`                  | `DsrDetail` (summary + `events`, oldest first).                                                                                                                                                                                                                          |
+| `PATCH /dsrs/:id`                | `UpdateDsrRequest`: `type`, `channel`, `description`, `assignee`, `responseNotes`, plus `ifVersion`. 422 when closed. A new assignee is notified.                                                                                                                        |
+| `POST /dsrs/:id/transition`      | `{ ifVersion, status, note?, outcome? }`. Only to the **next** status: received → identity_verified → in_progress → responded → closed (422 otherwise). `responded` needs `outcome`. `identity_verified` sets `identityVerified: true`. Appends a timeline event.        |
+| `POST /dsrs/:id/files`           | `{ fileId }` (from `POST /files`) → `DsrDetail`.                                                                                                                                                                                                                         |
+| `DELETE /dsrs/:id/files/:fileId` | → `DsrDetail`.                                                                                                                                                                                                                                                           |
+
+`DsrSummary` adds `assigneeName`, `daysLeft` (calendar days to `dueAt`, negative when overdue) and `dueState`: `overdue` (past), `due_soon` (within 7 days), `ok`, or `null` once responded or closed.
+
+### Incidents and breaches
+
+| Endpoint                               | Permission               | Notes                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /incidents`                       | `privacy.read`           | `ListResponse<IncidentSummary>`. `q`: ref, title, description. Filters `status`, `severity` (incl. `none`), `personalData` (`true,false`), `open=true`. Default sort `-discoveredAt`.                                                                                                                                         |
+| `POST /incidents`                      | **`incidents.report`**   | `ReportIncidentRequest` → 201 **`IncidentReceipt`** `{ id, ref, title, notificationDeadline, createdAt }` (reporters may lack `privacy.read`). `discoveredAt` can't be in the future (5 minutes' slack). Status `reported`; notifies members with `privacy.edit` (`deadline_breach`).                                         |
+| `GET /incidents/:id`                   | `privacy.read`           | `IncidentSummary` (adds `reportedByName`, `updatedByName`; `notices` carries `draftedByName` and `signedOffByName`).                                                                                                                                                                                                          |
+| `PATCH /incidents/:id`                 | `privacy.edit`           | `UpdateIncidentRequest` + `ifVersion`. See the rules below.                                                                                                                                                                                                                                                                   |
+| `POST /incidents/:id/notices/draft`    | `privacy.edit`           | `{ ifVersion }` → `IncidentSummary` with fresh `notices` (any sign-off cleared). 422 without personal data, when `notificationRequired === false`, or after the NPC was notified. Notifies members with `incidents.sign_off` (`approval_requested`).                                                                          |
+| `PATCH /incidents/:id/notices`         | `privacy.edit`           | `{ ifVersion, npc?, subjects? }` (`NoticeDraft`: subject 3–200, body 20–20,000 characters). **Clears the sign-off.** 422 before drafting or after the NPC was notified.                                                                                                                                                       |
+| `POST /incidents/:id/notices/sign-off` | **`incidents.sign_off`** | `{ ifVersion }`. 422 without notices, when already signed, or unless `notificationRequired === true`. Notifies `privacy.edit` members (`approval_decided`).                                                                                                                                                                   |
+| `POST /incidents/:id/notifications`    | `privacy.edit`           | `RecordNotificationRequest` `{ ifVersion, kind: "npc" \| "subjects", at, reference? }`. 422 unless the notices are signed off, or if that kind is already recorded. `at` can't be in the future or before `discoveredAt` (400 on `at`). `npc` sets `npcNotifiedAt` and `npcReference`, and status `notified` (unless closed). |
+
+**The 72-hour rule.** `notificationDeadline` = `discoveredAt` + 72 hours (elapsed time, UTC) whenever `personalDataInvolved` is true, else `null`. Recompute it whenever `discoveredAt` or `personalDataInvolved` changes. The clock is stopped by `npcNotifiedAt`, or shown as not required when `notificationRequired === false`.
+
+**PATCH rules.** Setting any triage field (`severity`, `personalDataInvolved`, `affectedCount`, `notificationRequired`, `notificationRationale`) moves `reported` to `triage`. `status` accepts `reported | triage | contained | closed` and only moves forward (422 otherwise); `contained` and `closed` set `containedAt` if empty. Closing needs `notificationRequired` decided when personal data is involved, and `npcNotifiedAt` when notification was required (422). Closed incidents accept only `postIncidentReview`.
+
+**Notice drafts** are plain text pre-filled from the incident and its links: org name, NPC registration reference, DPO on record (registration, else a member with the `dpo` role), title, description, discovery time (tenant timezone), reporter, processing records (`PA-002 Client project delivery`), their data subjects, data categories and sensitive categories, `affectedCount`, linked systems, and containment time. Unknowns are left as `[bracketed]` prompts.
+
+### Agreements
+
+| Endpoint                 | Notes                                                                                                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /agreements`        | `ListResponse<AgreementSummary>`. `q`: ref, counterparty, notes. Filters `type`, `role`, `renewal` (`due_soon,overdue,ok,none`), `processingActivityId`. Default sort `renewsAt` (no renewal date last).           |
+| `POST /agreements`       | `AgreementInput` → 201. `renewsAt` must be after `signedAt`; `fileId` must be an uploaded file in the org. `processingActivityIds` sets which processing records list this agreement (the link is stored on them). |
+| `GET /agreements/:id`    | `AgreementSummary` (adds `ownerName`, `updatedByName`, `file`, `processingActivityIds`, `renewalState`: `due_soon` within 30 days, `overdue` once passed, `null` with no renewal date, and `daysToRenewal`).       |
+| `PATCH /agreements/:id`  | `AgreementInput` + `ifVersion`. A later `renewsAt` is audited as `agreement.renewed`.                                                                                                                              |
+| `DELETE /agreements/:id` | 204; unlinks it from processing records.                                                                                                                                                                           |
+
+### NPC registration and training
+
+| Endpoint                       | Notes                                                                                                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /registrations`           | `ListResponse<RegistrationSummary>`; `status` is `registered`, `renewal_due` (within 30 days) or `expired`, plus `daysToRenewal`.                     |
+| `POST /registrations`          | `RegistrationInput` → 201. **One per organisation** (422 if one exists).                                                                              |
+| `GET/PATCH /registrations/:id` | PATCH takes `RegistrationInput` + `ifVersion`. A later `renewsAt` is audited as `registration.renewed`; history = the record's audit events.          |
+| `GET /training-records`        | `ListResponse<TrainingRecordSummary>` (adds `userName`, `state`: `valid`, `expiring` within 30 days, `expired`). Filters `userId`, `course`, `state`. |
+| `POST /training-records`       | `TrainingRecordInput` → 201. `userId` must be an active non-auditor member; `expiresAt` after `completedAt` or null.                                  |
+| `PATCH /training-records/:id`  | `TrainingRecordInput` + `ifVersion`.                                                                                                                  |
+| `DELETE /training-records/:id` | 204.                                                                                                                                                  |
+
+### Linked records
+
+The relation table (which side stores each link) is `LINK_RELATIONS` in `lib/links.ts`:
+
+| Owner               | Field                                                          | Target                                      |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------- |
+| processing_activity | `systemIds`                                                    | system                                      |
+| processing_activity | `agreementIds`                                                 | agreement                                   |
+| pia                 | `processingActivityId` (single, managed by the PIA)            | processing_activity                         |
+| dsr                 | `processingActivityIds`                                        | processing_activity                         |
+| incident            | `processingActivityIds`, `systemIds`, `documentIds`, `riskIds` | processing_activity, system, document, risk |
+
+| Endpoint                                        | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /links?type=&id=`                          | `LinksResponse` `{ groups: LinkGroup[] }`: one group per relation the record takes part in, **in both directions**, including empty groups, leaving out types whose module the plan lacks (`system`, `risk` need `security`; `document` needs `policies`). Items are `RecordRef` + `direction` (`to` = this record holds the link, `from` = the other record does), filtered to what the caller may see. `linkable` = the caller has `privacy.edit` and the relation isn't managed. 404 if the caller can't see the record. |
+| `GET /links/candidates?type=&q=&for=type:id`    | `{ items: RecordRef[] }`: up to 20 visible records of `type` matching `q` (ref or title), leaving out those already linked to `for`. With `ids=a,b` instead, returns those records (for showing a form's current links).                                                                                                                                                                                                                                                                                                    |
+| `POST /links`                                   | `{ from: { type, id }, to: { type, id } }` → 204. Finds the relation in either direction and adds the ID on the owner. Idempotent; bumps the owner's `version`; no `ifVersion`. 422 for unrelated types or managed relations; 403 without `privacy.edit`. Audits `<ownerType>.linked` with the target's `{ type, id, ref, title }`.                                                                                                                                                                                         |
+| `DELETE /links?fromType=&fromId=&toType=&toId=` | 204. Same rules; audits `<ownerType>.unlinked`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+`RecordRef`: `{ type, id, ref, title, href, status }`. DSR titles are `"<Type> request"`, never the requester.
+
+### Sensitive values
+
+`POST /sensitive/reveal` — permission `sensitive.reveal` (owner, admin, DPO) and `privacy.read`. Body `{ targetType: "dsr", targetId, field: "requesterName" | "requesterContact" }` → `{ value }`. Writes `sensitive.revealed` on the record with `{ field }` (never the value). Masks used in responses: names as initials (`M•••• C•••• D•••• C••••`), emails as first letter + domain (`m••••@mail.example`), anything else as the last 4 characters (`•••• 0142`).
+
+### Files
+
+| Endpoint         | Notes                                                                                                                                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /files`    | `multipart/form-data` with `file`. Needs `privacy.edit`, `security.edit` or `evidence.edit`. Up to 10 MB; PDF, PNG, JPEG, text, CSV, DOCX, XLSX (400 on `file` otherwise). → 201 `FileRef` `{ id, name, size, contentType, uploadedAt, uploadedBy }`. |
+| `GET /files/:id` | The file, with `Content-Disposition: attachment`. (The mock keeps metadata only and returns a placeholder text file.)                                                                                                                                 |
+
+### Risks created from incidents
+
+`POST /risks` — feature `security`, permission `security.edit`. `CreateRiskRequest` `{ title, description, likelihood, impact, owner, incidentId? }` → 201 `Risk` (`ref` `RISK-NNN`, `inherentScore` = likelihood × impact, `treatment: "mitigate"`, `status: "open"`, `reviewAt` = today + 3 months). With `incidentId` (caller also needs `privacy.edit`), the risk is added to the incident's `riskIds`. The risk register endpoints arrive in M5.
+
+### Search additions (M3)
+
+`GET /orgs/:org/search?q=` adds groups `processing_activity` ("Processing records"), `pia`, `dsr`, `incident` and `agreement`, matching ref and title (plus purpose, scope, description or notes). DSRs match by ref and type only.
+
+### Audit actions (M3)
+
+`processing_activity.created|updated|deleted|linked|unlinked`, `pia.created|updated|signed_off|deleted`, `dsr.created|updated|identity_verified|in_progress|responded|closed|file_attached|file_removed|linked|unlinked`, `sensitive.revealed`, `incident.reported|triaged|updated|contained|closed|notices_drafted|notices_edited|notices_signed_off|npc_notified|subjects_notified|linked|unlinked`, `agreement.created|updated|renewed|deleted`, `registration.created|updated|renewed`, `training.recorded|updated|deleted`, `risk.created`.

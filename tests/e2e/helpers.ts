@@ -20,6 +20,8 @@ export async function signInAs(page: Page, email: string, next?: string): Promis
   await page.goto(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
   await page.getByTestId(`sign-in-as-${email}`).click()
   await page.waitForURL((url) => !url.pathname.startsWith('/login'))
+  // Let the page hydrate: a click on a server-rendered button before React attaches does nothing.
+  await page.waitForLoadState('networkidle')
 }
 
 export function mainNav(page: Page) {

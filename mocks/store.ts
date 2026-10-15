@@ -2,12 +2,24 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type {
   Acknowledgement,
+  Agreement,
   AuditEvent,
   Control,
   Document,
+  Dsr,
+  DsrEvent,
+  FileRef,
+  Incident,
+  IncidentNotices,
   Notification,
   Org,
+  Pia,
+  ProcessingActivity,
+  Registration,
+  Risk,
   Role,
+  System,
+  TrainingRecord,
   User,
   WorkflowEvent,
 } from '@/lib/api/types'
@@ -70,6 +82,34 @@ export interface MockDB {
   workflowEvents: Omit<WorkflowEvent, 'actorName'>[]
   acknowledgements: Acknowledgement[]
   controls: Control[]
+  systems: System[]
+  risks: Risk[]
+  files: MockFile[]
+  processingActivities: ProcessingActivity[]
+  pias: Pia[]
+  dsrs: MockDsr[]
+  incidents: MockIncident[]
+  agreements: Agreement[]
+  registrations: Registration[]
+  trainingRecords: TrainingRecord[]
+}
+
+/** Upload metadata. The mock keeps no file contents. */
+export interface MockFile extends FileRef {
+  orgId: string
+}
+
+/** Stored DSR: the requester's real details, file IDs and the timeline. Responses mask the requester. */
+export interface MockDsr extends Omit<Dsr, 'requesterName' | 'requesterContact' | 'files'> {
+  requester: { name: string; contact: string }
+  fileIds: string[]
+  events: Omit<DsrEvent, 'byName'>[]
+}
+
+export type MockNotices = Omit<IncidentNotices, 'draftedByName' | 'signedOffByName'>
+
+export interface MockIncident extends Omit<Incident, 'notices'> {
+  notices: MockNotices | null
 }
 
 /** Stored version: names are resolved when returned. */

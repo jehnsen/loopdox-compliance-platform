@@ -1,11 +1,19 @@
 import { verifyMockToken } from '@/mocks/auth'
+import { agreementRoutes } from '@/mocks/handlers/agreements'
 import { auditEventRoutes } from '@/mocks/handlers/audit-events'
 import { authRoutes } from '@/mocks/handlers/auth'
 import { controlRoutes } from '@/mocks/handlers/controls'
 import { documentRoutes } from '@/mocks/handlers/documents'
+import { dsrRoutes } from '@/mocks/handlers/dsrs'
+import { fileRoutes } from '@/mocks/handlers/files'
+import { incidentRoutes } from '@/mocks/handlers/incidents'
+import { linkRoutes } from '@/mocks/handlers/links'
 import { meRoutes } from '@/mocks/handlers/me'
 import { notificationRoutes } from '@/mocks/handlers/notifications'
 import { orgRoutes } from '@/mocks/handlers/orgs'
+import { piaRoutes } from '@/mocks/handlers/pias'
+import { processingRoutes } from '@/mocks/handlers/processing'
+import { registrationRoutes } from '@/mocks/handlers/registrations'
 import { searchRoutes } from '@/mocks/handlers/search'
 import { apiError, HttpError } from '@/mocks/http'
 import { compile, match, resolveOrgCtx, type BaseCtx, type UserCtx } from '@/mocks/router'
@@ -20,6 +28,14 @@ const routes = [
   ...auditEventRoutes,
   ...documentRoutes,
   ...controlRoutes,
+  ...linkRoutes,
+  ...fileRoutes,
+  ...processingRoutes,
+  ...piaRoutes,
+  ...dsrRoutes,
+  ...incidentRoutes,
+  ...agreementRoutes,
+  ...registrationRoutes,
 ].map(compile)
 
 /** "150-400" (default) → random latency in that range; "0" disables. */

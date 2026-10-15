@@ -1,0 +1,130 @@
+import type { System } from '@/lib/api/types'
+
+/**
+ * The 10 systems for 3rdLoop. Seeded in M3 because processing records and incidents
+ * link to them; the Systems register UI arrives in M5. Vendor names other than the
+ * connector providers are fictional.
+ */
+export function seedSystems(now: Date): System[] {
+  const at = new Date(now.getTime() - 380 * 86_400_000).toISOString()
+  const s = (
+    id: string,
+    name: string,
+    type: System['type'],
+    provider: string,
+    classification: System['classification'],
+    hosting: string,
+    holdsPersonalData: boolean,
+    notes = '',
+  ): System => ({
+    id,
+    orgId: 'org_3rdloop',
+    createdAt: at,
+    updatedAt: at,
+    createdBy: 'usr_jehnsen',
+    updatedBy: 'usr_jehnsen',
+    version: 1,
+    sample: true,
+    name,
+    type,
+    provider,
+    owner: 'usr_jehnsen',
+    classification,
+    hosting,
+    holdsPersonalData,
+    notes,
+  })
+  return [
+    s(
+      'sys_github',
+      'GitHub organisation',
+      'repository',
+      'GitHub',
+      'confidential',
+      'GitHub cloud',
+      false,
+    ),
+    s(
+      'sys_azure_prod',
+      'Azure production subscription',
+      'cloud_account',
+      'Microsoft Azure',
+      'restricted',
+      'Azure Southeast Asia',
+      true,
+    ),
+    s(
+      'sys_db_prod',
+      'Client project database',
+      'database',
+      'Azure Database for PostgreSQL',
+      'restricted',
+      'Azure Southeast Asia',
+      true,
+    ),
+    s(
+      'sys_keyvault',
+      'Key Vault kv-prod',
+      'cloud_account',
+      'Microsoft Azure',
+      'restricted',
+      'Azure Southeast Asia',
+      false,
+    ),
+    s(
+      'sys_workspace',
+      'Google Workspace',
+      'saas',
+      'Google',
+      'confidential',
+      'Google cloud, multi-region',
+      true,
+    ),
+    s(
+      'sys_hostinger',
+      'Marketing website',
+      'server',
+      'Hostinger',
+      'public',
+      'Shared hosting, Singapore',
+      true,
+      'Hosts the contact form.',
+    ),
+    s(
+      'sys_domain',
+      '3rdloop.example domain and DNS',
+      'domain',
+      'Domain registrar',
+      'internal',
+      'Registrar DNS',
+      false,
+    ),
+    s(
+      'sys_payroll',
+      'Payroll service',
+      'saas',
+      'Sahod Payroll Services',
+      'restricted',
+      'Vendor cloud, Singapore',
+      true,
+    ),
+    s(
+      'sys_mailer',
+      'Newsletter mailer',
+      'saas',
+      'Liham Mailer Co.',
+      'internal',
+      'Vendor cloud, United States',
+      true,
+    ),
+    s(
+      'sys_nas',
+      'Office file server',
+      'server',
+      'On-premises',
+      'confidential',
+      'Makati office',
+      true,
+    ),
+  ]
+}

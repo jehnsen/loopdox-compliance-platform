@@ -18,4 +18,15 @@ export const qk = {
     nextId: (org: string) => [org, 'documents', 'next-id'] as const,
   },
   controls: (org: string, query: ListQuery) => [org, 'controls', query] as const,
+  /** Everything privacy-related lives under [org, 'privacy'] so one invalidation refreshes lists, details and links. */
+  privacy: {
+    all: (org: string) => [org, 'privacy'] as const,
+    list: (org: string, resource: string, query: ListQuery) =>
+      [org, 'privacy', resource, 'list', query] as const,
+    detail: (org: string, resource: string, id: string) =>
+      [org, 'privacy', resource, 'detail', id] as const,
+    links: (org: string, type: string, id: string) => [org, 'privacy', 'links', type, id] as const,
+    candidates: (org: string, type: string, forRecord: string, q: string) =>
+      [org, 'privacy', 'link-candidates', type, forRecord, q] as const,
+  },
 }
