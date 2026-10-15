@@ -11,6 +11,7 @@ import { linkRoutes } from '@/mocks/handlers/links'
 import { meRoutes } from '@/mocks/handlers/me'
 import { notificationRoutes } from '@/mocks/handlers/notifications'
 import { orgRoutes } from '@/mocks/handlers/orgs'
+import { overviewRoutes } from '@/mocks/handlers/overview'
 import { piaRoutes } from '@/mocks/handlers/pias'
 import { processingRoutes } from '@/mocks/handlers/processing'
 import { registrationRoutes } from '@/mocks/handlers/registrations'
@@ -25,6 +26,7 @@ const routes = [
   ...orgRoutes,
   ...notificationRoutes,
   ...searchRoutes,
+  ...overviewRoutes,
   ...auditEventRoutes,
   ...documentRoutes,
   ...controlRoutes,

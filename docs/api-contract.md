@@ -521,3 +521,79 @@ The relation table (which side stores each link) is `LINK_RELATIONS` in `lib/lin
 ### Audit actions (M3)
 
 `processing_activity.created|updated|deleted|linked|unlinked`, `pia.created|updated|signed_off|deleted`, `dsr.created|updated|identity_verified|in_progress|responded|closed|file_attached|file_removed|linked|unlinked`, `sensitive.revealed`, `incident.reported|triaged|updated|contained|closed|notices_drafted|notices_edited|notices_signed_off|npc_notified|subjects_notified|linked|unlinked`, `agreement.created|updated|renewed|deleted`, `registration.created|updated|renewed`, `training.recorded|updated|deleted`, `risk.created`.
+
+## Overview and search — M4
+
+### `GET /orgs/:org/overview` → 200 `OverviewResponse`
+
+The Overview dashboard in one call. Any active member may call it; each block is filtered to what the caller may see, and the plan gates the same way the modules do.
+
+```json
+{
+  "generatedAt": "2026-10-15T03:00:00.000Z",
+  "documents": { "total": 16, "approved": 13, "in_review": 1, "draft": 2, "retired": 0 },
+  "attention": {
+    "total": 5,
+    "counts": { "breach_deadline": 1, "dsr_due": 1, "policy_approval": 1 },
+    "items": [
+      {
+        "id": "breach_deadline:inc_2026_0003",
+        "kind": "breach_deadline",
+        "tone": "warn",
+        "ref": "INC-2026-0003",
+        "title": "Client database backup exposed in a public storage container",
+        "detail": "Decide whether NPC notification is required",
+        "badge": null,
+        "deadline": "2026-10-17T21:00:00.000Z",
+        "href": "/3rdloop/privacy/incidents/inc_2026_0003"
+      }
+    ]
+  },
+  "controlCoverage": [
+    { "framework": "ISO27001:2022", "passing": 20, "failing": 2, "no_evidence": 4, "total": 26 }
+  ],
+  "recentActivity": [
+    {
+      "id": "aud_…",
+      "actor": { "id": "usr_jehnsen", "name": "Jehnsen Enrique" },
+      "action": "document.submitted",
+      "targetType": "document",
+      "targetLabel": "ITD-007 Access Control Policy",
+      "href": "/3rdloop/policies/doc_itd_007",
+      "at": "2026-10-15T01:00:00.000Z",
+      "details": { "version": 3 }
+    }
+  ]
+}
+```
+
+**`documents`**: controlled documents the caller can read, counted by status. Section pages (`SEC-…`) are left out. Callers without `policies.read_drafts` count only the approved versions they can see (same projection as `GET /documents`). `null` without `policies.read` or the Policies plan.
+
+**`attention`**: what needs doing, **most serious class first**: `breach_deadline`, `dsr_due`, `policy_approval`, `secret_rotation`, `access_review`, `connector_failing`, `review_overdue`, `agreement_renewal`; within a class, overdue (`tone: "bad"`) before upcoming (`"warn"`), then by how soon. `total` and `counts` cover the whole list (the UI collapses long lists itself). **Empty for staff-only and auditor-only members.** Each item's `href` opens the record it names. A source module contributes items only to callers who can open its records.
+
+| Kind                | When an item exists                                                                                                                     | `tone`                                    | Extra                                                                                    |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `breach_deadline`   | Incident not closed, personal data involved, NPC not yet notified, `notificationRequired !== false`. Needs `privacy.read`.              | `bad` under 6 h left or past; else `warn` | `deadline` = `notificationDeadline`. `detail` says "Decide whether…" while undecided.    |
+| `dsr_due`           | Request `received`, `identity_verified` or `in_progress` and due within 7 days or late. Title is the request type, never the requester. | `bad` when overdue; else `warn`           | `badge` "Assigned to you" for the assignee.                                              |
+| `policy_approval`   | Document `in_review`. Needs `policies.read_drafts`.                                                                                     | `warn`                                    | `badge`: "Ready for your decision" with `policies.approve`, else "Waiting for approval". |
+| `review_overdue`    | Approved document whose `nextReviewDate` has passed. Needs `policies.read_drafts`.                                                      | `bad`                                     | `badge` "You own this" for the owner.                                                    |
+| `agreement_renewal` | Agreement with `renewsAt` within 30 days or past.                                                                                       | `bad` when past; else `warn`              |                                                                                          |
+| `secret_rotation`   | _M5_: secret record past `nextDueAt`.                                                                                                   |                                           |                                                                                          |
+| `access_review`     | _M5_: access review due or in progress past its period.                                                                                 |                                           |                                                                                          |
+| `connector_failing` | _M6_: connector with status `error`.                                                                                                    |                                           |                                                                                          |
+
+**`controlCoverage`**: per framework, controls by status (`not_applicable` excluded; `total` = passing + failing + no_evidence). `null` on plans without Evidence or without `evidence.read`.
+
+**`recentActivity`**: the 10 latest audit events on records the caller can open (plus the registration and training pages for `privacy.read`), newest first; `href` is null for events without a page. People with `audit_log.read` also get org-level events. `sensitive.*` events are for `audit_log.read` only. `null` for staff-only and auditor-only members.
+
+### Search changes (M4)
+
+`GET /orgs/:org/search?q=&type=&limit=`
+
+- **Every word must match.** `q` is split on whitespace; a record matches when each word appears in its ID, title or text (case-insensitive). Snippets mark every matching word with `«…»`.
+- **Ranking inside a group:** exact ID, then ID match, then title match, then body text only.
+- `type` (repeatable or comma-separated `SearchResultType`) restricts the groups returned. `limit` is the maximum results per group: default 8, at most 50.
+- Each group gains `total`: the number of matches, so the UI can offer "Show all N".
+- Group order is fixed: `document`, `processing_activity`, `pia`, `dsr`, `incident`, `agreement`, `system`, `secret_record`, `change`, `risk`, `decision`, `control`, `evidence`, `ai_use_case`.
+- New searchable types: `system` and `risk` (plans with Security; visible to `security.read` or `privacy.read`), and `control` (plans with Evidence, `evidence.read`: reference, title, framework and description; links to `/:org/evidence/controls/:id`). Evidence items join in M6.
+- DSRs still match by reference and type only. Requester details never appear.

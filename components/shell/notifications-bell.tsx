@@ -2,7 +2,16 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { BellIcon } from 'lucide-react'
+import {
+  AlarmClockIcon,
+  AtSignIcon,
+  BellIcon,
+  CheckCheckIcon,
+  GavelIcon,
+  PlugZapIcon,
+  type LucideIcon,
+} from 'lucide-react'
+import type { NotificationType } from '@/lib/api/types'
 import { useMarkNotificationsRead, useNotifications } from '@/lib/api/hooks/use-notifications'
 import { en } from '@/lib/i18n/en'
 import { cn } from '@/lib/utils/cn'
@@ -11,6 +20,18 @@ import { DateText } from '@/components/date-text'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
+
+const TYPE_ICONS: Record<NotificationType, LucideIcon> = {
+  approval_requested: GavelIcon,
+  approval_decided: CheckCheckIcon,
+  deadline_dsr: AlarmClockIcon,
+  deadline_breach: AlarmClockIcon,
+  deadline_review: AlarmClockIcon,
+  deadline_rotation: AlarmClockIcon,
+  deadline_renewal: AlarmClockIcon,
+  mention: AtSignIcon,
+  connector_failed: PlugZapIcon,
+}
 
 export function NotificationsBell() {
   const org = useOrgSlug()
@@ -68,34 +89,38 @@ export function NotificationsBell() {
             <p className="px-3 py-6 text-center text-base text-muted">{en.shell.noNotifications}</p>
           ) : (
             <ul className="divide-y divide-line">
-              {data.items.map((n) => (
-                <li key={n.id}>
-                  <Link
-                    href={n.href}
-                    onClick={() => {
-                      if (!n.readAt) markRead.mutate({ ids: [n.id] })
-                      setOpen(false)
-                    }}
-                    className="flex gap-2.5 px-3 py-2.5 hover:bg-surface-2"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'mt-1.5 size-2 shrink-0 rounded-full',
-                        n.readAt ? 'border border-line' : 'bg-accent',
-                      )}
-                    />
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className={cn('text-base', !n.readAt && 'font-medium')}>
-                        {n.readAt ? null : <span className="sr-only">Unread: </span>}
-                        {n.title}
+              {data.items.map((n) => {
+                const Icon = TYPE_ICONS[n.type]
+                return (
+                  <li key={n.id}>
+                    <Link
+                      href={n.href}
+                      onClick={() => {
+                        if (!n.readAt) markRead.mutate({ ids: [n.id] })
+                        setOpen(false)
+                      }}
+                      className="flex gap-2.5 px-3 py-2.5 hover:bg-surface-2"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'mt-1.5 size-2 shrink-0 rounded-full',
+                          n.readAt ? 'border border-line' : 'bg-accent',
+                        )}
+                      />
+                      <Icon className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className={cn('text-base', !n.readAt && 'font-medium')}>
+                          {n.readAt ? null : <span className="sr-only">Unread: </span>}
+                          {n.title}
+                        </span>
+                        <span className="text-sm text-muted">{n.body}</span>
+                        <DateText value={n.at} relative className="text-xs text-muted" />
                       </span>
-                      <span className="text-sm text-muted">{n.body}</span>
-                      <DateText value={n.at} relative className="text-xs text-muted" />
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

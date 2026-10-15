@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { MessageSquareTextIcon } from 'lucide-react'
+import { useOverview } from '@/lib/api/hooks/use-overview'
 import { useCan } from '@/lib/auth/can'
 import { isAuditorOnly, ROLE_LABELS } from '@/lib/auth/permissions'
 import { hasFeature, TIER_LABELS } from '@/lib/entitlements'
@@ -9,13 +10,66 @@ import { en } from '@/lib/i18n/en'
 import { ReportIncidentIcon, visibleNav } from '@/lib/nav'
 import { useSession } from '@/components/providers/session-provider'
 import { PageHeader } from '@/components/page-header'
+import { ErrorState } from '@/components/states'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { AskBox } from '@/features/overview/ask-box'
+import { CoverageCard } from '@/features/overview/coverage-card'
+import { DocumentsCard } from '@/features/overview/documents-card'
+import { NeedsAttention } from '@/features/overview/needs-attention'
 import { PoliciesToRead } from '@/features/overview/policies-to-read'
+import { RecentActivity } from '@/features/overview/recent-activity'
 
-/**
- * Overview. The full dashboard (tiles, needs-attention list, activity) arrives in
- * M4; this version orients the user and links to what their role can do.
- */
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3" aria-busy="true" aria-label="Loading the dashboard">
+      <Skeleton className="h-72 lg:col-span-2" />
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-34" />
+        <Skeleton className="h-34" />
+      </div>
+      <Skeleton className="h-56 lg:col-span-3" />
+    </div>
+  )
+}
+
+/** Summary first: needs-attention list, document and control tiles, then recent activity. */
+function Dashboard({ operational }: { operational: boolean }) {
+  const { org } = useSession()
+  const { data, isLoading, isError, refetch } = useOverview(org.slug)
+  if (isLoading) return <DashboardSkeleton />
+  if (isError || !data) {
+    return (
+      <ErrorState
+        title="Couldn’t load the dashboard"
+        body="Check your connection and try again."
+        onRetry={() => void refetch()}
+      />
+    )
+  }
+  const tiles = (
+    <>
+      {data.documents ? <DocumentsCard org={org.slug} counts={data.documents} /> : null}
+      {data.controlCoverage ? <CoverageCard coverage={data.controlCoverage} /> : null}
+    </>
+  )
+  return (
+    <>
+      {operational ? (
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <NeedsAttention attention={data.attention} />
+          </div>
+          <div className="flex flex-col gap-4">{tiles}</div>
+        </div>
+      ) : data.documents || data.controlCoverage ? (
+        <div className="grid items-start gap-4 md:grid-cols-2">{tiles}</div>
+      ) : null}
+      {data.recentActivity ? <RecentActivity items={data.recentActivity} /> : null}
+    </>
+  )
+}
+
 export function OverviewPage() {
   const session = useSession()
   const { org, user, roles, tier } = session
@@ -24,6 +78,9 @@ export function OverviewPage() {
   const groups = visibleNav(org.slug, roles, tier).filter((g) => g.id !== 'overview')
   const canReport = hasFeature(tier, 'privacy') && can('incidents.report')
   const canAsk = hasFeature(tier, 'ask.policy') && can('ask.use')
+  const auditor = isAuditorOnly(session)
+  // Staff get the simplified overview; VisorShield-only tenants have no registers to summarise.
+  const showDashboard = !staffOnly && tier !== 'visorshield_only'
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,13 +110,16 @@ export function OverviewPage() {
       />
 
       {staffOnly && hasFeature(tier, 'policies') ? <PoliciesToRead /> : null}
+      {staffOnly && canAsk ? <AskBox /> : null}
 
-      {isAuditorOnly(session) ? (
+      {auditor ? (
         <p className="rounded-md border border-line bg-surface px-4 py-3 text-base">
           You have read-only guest access to {org.name}. You can view approved policies, registers
           and evidence. Nothing you do here changes their records.
         </p>
       ) : null}
+
+      {showDashboard ? <Dashboard operational={!auditor} /> : null}
 
       <section aria-labelledby="areas" className="flex flex-col gap-3">
         <h2 id="areas" className="label-caps">

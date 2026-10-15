@@ -76,7 +76,7 @@ function linkLabel(d: Record<string, unknown>): string {
   return [d.ref, d.title].filter((v) => typeof v === 'string' && v).join(' ')
 }
 
-export function describeAction(event: AuditEvent): string {
+export function describeAction(event: Pick<AuditEvent, 'action' | 'details'>): string {
   const fn = ACTION_LABELS[event.action]
   if (fn) return fn(event.details)
   if (event.action.endsWith('.linked')) return `linked ${linkLabel(event.details)}`

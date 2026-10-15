@@ -283,9 +283,101 @@ export interface SearchResult {
   snippet: string | null
 }
 
+export interface SearchGroup {
+  type: SearchResultType
+  label: string
+  /** Up to `limit` results, best match first. */
+  items: SearchResult[]
+  /** Every match in this group, so the UI can offer "Show all". */
+  total: number
+}
+
 export interface SearchResponse {
   q: string
-  groups: { type: SearchResultType; label: string; items: SearchResult[] }[]
+  groups: SearchGroup[]
+}
+
+// ---------------------------------------------------------------------------
+// Overview dashboard (M4)
+// ---------------------------------------------------------------------------
+
+/** What needs attention, in the order the spec lists them (section 9.1). */
+export type AttentionKind =
+  | 'breach_deadline'
+  | 'dsr_due'
+  | 'policy_approval'
+  | 'review_overdue'
+  | 'secret_rotation'
+  | 'access_review'
+  | 'connector_failing'
+  | 'agreement_renewal'
+
+export interface AttentionItem {
+  /** `${kind}:${recordId}` */
+  id: string
+  kind: AttentionKind
+  /** bad = overdue (or a breach clock in the red); warn = coming up. */
+  tone: 'bad' | 'warn'
+  /** Display ID: INC-2026-0003, ITD-007. null for records without one. */
+  ref: string | null
+  title: string
+  /** Why it needs attention, in plain words: "Due in 2 days". */
+  detail: string
+  /** Extra cue, e.g. "Ready for your decision". */
+  badge: string | null
+  /** Deadline for items with a live countdown (breaches). */
+  deadline: ISODateTime | null
+  /** App path of the record. */
+  href: string
+}
+
+export interface DocumentCounts {
+  /** Controlled documents the caller can see (section pages excluded). */
+  total: number
+  approved: number
+  in_review: number
+  draft: number
+  retired: number
+}
+
+export interface ControlCoverage {
+  framework: Framework
+  passing: number
+  failing: number
+  no_evidence: number
+  /** Controls that apply: not_applicable ones are left out. */
+  total: number
+}
+
+export interface ActivityItem {
+  id: string
+  actor: { id: string; name: string } | null
+  /** Audit action key, e.g. "document.approved". describeAction turns it into words. */
+  action: string
+  targetType: string
+  targetLabel: string | null
+  /** App path of the record, or null when it has no page. */
+  href: string | null
+  at: ISODateTime
+  details: Record<string, unknown>
+}
+
+/** GET /orgs/:org/overview */
+export interface OverviewResponse {
+  generatedAt: ISODateTime
+  /** null without `policies.read` or the Policies plan. */
+  documents: DocumentCounts | null
+  attention: {
+    /** Before any "show more" cut: this is the number the dashboard reports. */
+    total: number
+    counts: Partial<Record<AttentionKind, number>>
+    /** Ranked most urgent first. Empty for staff and auditor-only members. */
+    items: AttentionItem[]
+  }
+  /** null on plans without Evidence, or without `evidence.read`. */
+  controlCoverage: ControlCoverage[] | null
+  /** null for staff and auditor-only members. */
+  recentActivity: ActivityItem[] | null
 }
 
 // ---------------------------------------------------------------------------

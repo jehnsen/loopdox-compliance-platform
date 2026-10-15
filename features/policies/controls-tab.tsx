@@ -3,19 +3,13 @@
 import Link from 'next/link'
 import { ListChecksIcon } from 'lucide-react'
 import { useLinkedControls } from '@/lib/api/hooks/use-documents'
-import type { DocumentDetail, Framework } from '@/lib/api/types'
+import type { DocumentDetail } from '@/lib/api/types'
+import { FRAMEWORK_LABELS } from '@/lib/overview'
 import { useOrgSlug } from '@/components/providers/session-provider'
 import { Gate } from '@/components/gate'
 import { EmptyState, ErrorState } from '@/components/states'
 import { StatusPill } from '@/components/status-pill'
 import { Skeleton } from '@/components/ui/skeleton'
-
-export const FRAMEWORK_LABELS: Record<Framework, string> = {
-  'ISO27001:2022': 'ISO/IEC 27001:2022',
-  DPA: 'Data Privacy Act',
-  NPC: 'NPC',
-  internal: 'Internal',
-}
 
 function ControlsList({ doc }: { doc: DocumentDetail }) {
   const org = useOrgSlug()

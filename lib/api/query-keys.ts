@@ -5,7 +5,9 @@ export const qk = {
   me: (org: string | null) => ['me', org] as const,
   members: (org: string, query?: ListQuery) => [org, 'members', query ?? {}] as const,
   notifications: (org: string) => [org, 'notifications'] as const,
-  search: (org: string, q: string) => [org, 'search', q] as const,
+  search: (org: string, q: string, opts?: { types?: string[]; limit?: number }) =>
+    [org, 'search', q, opts ?? {}] as const,
+  overview: (org: string) => [org, 'overview'] as const,
   auditEvents: (org: string, query?: ListQuery) => [org, 'audit-events', query ?? {}] as const,
   documents: {
     all: (org: string) => [org, 'documents'] as const,

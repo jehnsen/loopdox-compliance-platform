@@ -180,7 +180,16 @@ export const linkRoutes: RouteDef[] = [
 ]
 
 // Privacy records are searchable by reference and title (never by a requester's identity).
-for (const type of ['processing_activity', 'pia', 'dsr', 'incident', 'agreement'] as const) {
+// Systems and risks are searchable too, on plans that include Security.
+for (const type of [
+  'processing_activity',
+  'pia',
+  'dsr',
+  'incident',
+  'agreement',
+  'system',
+  'risk',
+] as const) {
   searchSources.push({
     type,
     label: RECORD_LABELS[type].many,

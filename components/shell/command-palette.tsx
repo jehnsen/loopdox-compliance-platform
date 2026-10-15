@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
-import { CornerDownLeftIcon, LockIcon, MessageSquareTextIcon } from 'lucide-react'
+import { CornerDownLeftIcon, ListIcon, LockIcon, MessageSquareTextIcon } from 'lucide-react'
 import { useSearch } from '@/lib/api/hooks/use-search'
 import { can } from '@/lib/auth/permissions'
 import { hasFeature } from '@/lib/entitlements'
@@ -11,6 +11,7 @@ import { DsrIcon, NewPolicyIcon, ReportIncidentIcon, visibleNav } from '@/lib/na
 import { useDebouncedValue } from '@/lib/utils/use-debounced-value'
 import { useSession } from '@/components/providers/session-provider'
 import { IdChip } from '@/components/chips'
+import { Highlighted } from '@/components/highlight'
 import {
   Command,
   CommandDialog,
@@ -23,24 +24,6 @@ import { Kbd } from '@/components/ui/kbd'
 
 function matches(text: string, q: string): boolean {
   return text.toLowerCase().includes(q.toLowerCase())
-}
-
-/** Renders "«match»" markers from the search API as <mark>. */
-export function Highlighted({ text }: { text: string }) {
-  const parts = text.split(/«|»/)
-  return (
-    <>
-      {parts.map((p, i) =>
-        i % 2 === 1 ? (
-          <mark key={i} className="rounded-sm bg-warn-soft px-0.5 text-fg">
-            {p}
-          </mark>
-        ) : (
-          <span key={i}>{p}</span>
-        ),
-      )}
-    </>
-  )
 }
 
 /**
@@ -173,6 +156,20 @@ export function CommandPalette({
                   ) : null}
                 </CommandItem>
               ))}
+            </CommandGroup>
+          ) : null}
+          {q.length >= 2 ? (
+            <CommandGroup heading="Search">
+              <CommandItem
+                value="search-all"
+                onSelect={() => go(`/${org.slug}/search?q=${encodeURIComponent(q)}`)}
+              >
+                <ListIcon aria-hidden="true" />
+                <span className="truncate">
+                  See all results for <span className="font-medium">{q}</span>
+                </span>
+                <CornerDownLeftIcon className="ml-auto" aria-hidden="true" />
+              </CommandItem>
             </CommandGroup>
           ) : null}
           {q && canAsk ? (

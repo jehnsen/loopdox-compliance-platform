@@ -39,6 +39,8 @@ for (const scheme of ['light', 'dark'] as const) {
       await expectNoViolations(page, '/select-org')
       for (const path of [
         '/3rdloop',
+        '/3rdloop/search?q=data',
+        '/3rdloop/search?q=zzzz',
         '/3rdloop/security/risks',
         '/sample-clinic/security/assets',
         '/sample-clinic/ai-governance',
