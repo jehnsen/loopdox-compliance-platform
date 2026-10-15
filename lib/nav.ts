@@ -308,7 +308,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/ai-governance',
         icon: GaugeIcon,
         permission: 'ai.read',
-        milestone: 'M8',
       },
       {
         id: 'ai-inventory',
@@ -316,7 +315,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/ai-governance/inventory',
         icon: BotIcon,
         permission: 'ai.read',
-        milestone: 'M8',
       },
       {
         id: 'ai-assessments',
@@ -324,7 +322,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/ai-governance/assessments',
         icon: FileCheck2Icon,
         permission: 'ai.read',
-        milestone: 'M8',
       },
       {
         id: 'ai-profiles',
@@ -332,7 +329,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/ai-governance/profiles',
         icon: SlidersHorizontalIcon,
         permission: 'ai.read',
-        milestone: 'M8',
       },
       {
         id: 'ai-keys',
@@ -340,7 +336,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/ai-governance/keys',
         icon: LockKeyholeIcon,
         permission: 'ai.read',
-        milestone: 'M8',
       },
       {
         id: 'ai-events',
@@ -348,7 +343,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/ai-governance/events',
         icon: ActivityIcon,
         permission: 'ai.read',
-        milestone: 'M8',
       },
     ],
   },

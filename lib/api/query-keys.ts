@@ -27,6 +27,16 @@ export const qk = {
     [org, 'controls', 'evidence-list', query] as const,
   connectors: (org: string) => [org, 'connectors'] as const,
   auditPack: (org: string, query: ListQuery) => [org, 'audit-pack', query] as const,
+  /** Everything AI Governance lives under [org, 'ai'] so one invalidation refreshes lists, details and statistics. */
+  ai: {
+    all: (org: string) => [org, 'ai'] as const,
+    list: (org: string, resource: string, query: ListQuery) =>
+      [org, 'ai', resource, 'list', query] as const,
+    detail: (org: string, resource: string, id: string) =>
+      [org, 'ai', resource, 'detail', id] as const,
+    stats: (org: string, query: ListQuery) => [org, 'ai', 'stats', query] as const,
+    facets: (org: string) => [org, 'ai', 'events', 'facets'] as const,
+  },
   /** Everything security-related lives under [org, 'security'] so one invalidation refreshes lists and details. */
   security: {
     all: (org: string) => [org, 'security'] as const,

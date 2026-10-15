@@ -20,12 +20,13 @@ import type {
 // Controls and evidence
 // ---------------------------------------------------------------------------
 
-export function useControls(org: string, query: ListQuery) {
+export function useControls(org: string, query: ListQuery, enabled = true) {
   return useQuery({
     queryKey: qk.controls(org, query),
     queryFn: ({ signal }) =>
       api.get<ListResponse<ControlSummary>>(orgPath(org, '/controls'), { query, signal }),
     placeholderData: keepPreviousData,
+    enabled,
   })
 }
 

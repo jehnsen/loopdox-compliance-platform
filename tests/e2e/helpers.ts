@@ -5,6 +5,7 @@ export const USERS = {
   michael: 'michael.manabat@3rdloop.example',
   staff: 'staff@3rdloop.example',
   auditor: 'auditor@audit-firm.example',
+  vsOwner: 'ramon.delacruz@bayanihan-law.example',
   clinicDpo: 'liza.santos@sample-clinic.example',
   clinicStaff: 'frontdesk@sample-clinic.example',
 } as const

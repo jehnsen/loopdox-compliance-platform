@@ -313,6 +313,7 @@ export const recordTypeSchema = z.enum([
   'change',
   'decision',
   'control',
+  'ai_use_case',
 ])
 
 const recordPointer = z.object({ type: recordTypeSchema, id: z.string().min(1) })

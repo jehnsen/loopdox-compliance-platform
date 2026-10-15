@@ -56,6 +56,15 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
   expired: { label: 'Expired', tone: 'bad', mark: 'clock' },
   valid: { label: 'Valid', tone: 'ok', mark: 'check' },
   expiring: { label: 'Expiring', tone: 'warn', mark: 'clock' },
+  // AI Governance (M8)
+  healthy: { label: 'Healthy', tone: 'ok', mark: 'check' },
+  degraded: { label: 'Degraded', tone: 'warn', mark: 'alert' },
+  proposed: { label: 'Proposed', tone: 'info', mark: 'hollow' },
+  rejected: { label: 'Rejected', tone: 'bad', mark: 'x' },
+  approved_with_conditions: { label: 'Approved with conditions', tone: 'warn', mark: 'check' },
+  masked: { label: 'Masked', tone: 'info', mark: 'dot' },
+  blocked: { label: 'Blocked', tone: 'bad', mark: 'x' },
+  allowed: { label: 'Allowed', tone: 'ok', mark: 'check' },
 }
 
 const TONE_CLASSES: Record<Tone, { pill: string; dot: string }> = {

@@ -40,6 +40,9 @@ export const LINK_RELATIONS: readonly LinkRelation[] = [
   { owner: 'decision', field: 'systemIds', target: 'system' },
   { owner: 'risk', field: 'documentIds', target: 'document' },
   { owner: 'risk', field: 'controlIds', target: 'control' },
+  // AI Governance (M8): a use case points at the systems and processing records it touches.
+  { owner: 'ai_use_case', field: 'systemIds', target: 'system' },
+  { owner: 'ai_use_case', field: 'processingActivityIds', target: 'processing_activity' },
 ]
 
 /** Permission needed to add or remove links stored on records of this type. */
@@ -52,6 +55,8 @@ export function linkPermission(owner: RecordType): Permission {
     case 'risk':
     case 'system':
       return 'security.edit'
+    case 'ai_use_case':
+      return 'ai.edit'
     default:
       return 'privacy.edit'
   }
@@ -71,6 +76,7 @@ export const RECORD_LABELS: Record<RecordType, { one: string; many: string }> = 
   change: { one: 'Change', many: 'Changes' },
   decision: { one: 'Decision', many: 'Decisions' },
   control: { one: 'Control', many: 'Controls' },
+  ai_use_case: { one: 'AI use case', many: 'AI use cases' },
 }
 
 /** Plan feature each record type belongs to; links to a type the plan lacks are hidden. */
@@ -88,6 +94,7 @@ export const RECORD_FEATURES: Record<RecordType, Feature> = {
   change: 'security',
   decision: 'security',
   control: 'evidence',
+  ai_use_case: 'aiGovernance',
 }
 
 /** App path of a record's detail page. */
@@ -120,6 +127,8 @@ export function recordHref(org: string, type: RecordType, id: string): string {
       return `${base}/security/decisions/${id}`
     case 'control':
       return `${base}/evidence/controls/${id}`
+    case 'ai_use_case':
+      return `${base}/ai-governance/inventory/${id}`
   }
 }
 

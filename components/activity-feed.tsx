@@ -102,6 +102,22 @@ const ACTION_LABELS: Record<string, (d: Record<string, unknown>) => string> = {
   'decision.updated': () => 'updated the decision',
   'decision.superseded': (d) => `superseded it with ${String(d.by)}`,
   'decision.deleted': () => 'deleted this proposal',
+  // AI Governance (M8)
+  'ai_use_case.created': () => 'added this use case',
+  'ai_use_case.updated': () => 'updated the details',
+  'ai_use_case.retired': () => 'retired this use case',
+  'ai_use_case.reopened': () => 'reopened this use case',
+  'ai_use_case.deleted': () => 'deleted this use case',
+  'ai_use_case.assessed': (d) =>
+    `recorded ${String(d.assessment)}: ${String(d.decision).replace(/_/g, ' ')}`,
+  'ai_assessment.started': () => 'started this assessment',
+  'ai_assessment.decided': (d) =>
+    `decided: ${String(d.note).toLowerCase()}, ${String(d.risk)} risk`,
+  'ai_assessment.cancelled': () => 'cancelled this assessment',
+  'ai_profile.updated': () => 'changed what this profile masks and blocks',
+  'ai_key.created': (d) => `added a key ending ${String(d.last4)}`,
+  'ai_key.rotated': (d) => `replaced the key; the new one ends ${String(d.last4)}`,
+  'ai_key.deleted': (d) => `deleted the key ending ${String(d.last4)}`,
 }
 
 function linkLabel(d: Record<string, unknown>): string {

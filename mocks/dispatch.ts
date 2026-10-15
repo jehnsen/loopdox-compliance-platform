@@ -1,5 +1,8 @@
 import { verifyMockToken } from '@/mocks/auth'
 import { accessRoutes } from '@/mocks/handlers/access'
+import { aiConfigRoutes } from '@/mocks/handlers/ai-config'
+import { aiInventoryRoutes } from '@/mocks/handlers/ai-inventory'
+import { aiMonitoringRoutes } from '@/mocks/handlers/ai-monitoring'
 import { agreementRoutes } from '@/mocks/handlers/agreements'
 import { askRoutes } from '@/mocks/handlers/ask'
 import { auditEventRoutes } from '@/mocks/handlers/audit-events'
@@ -60,6 +63,9 @@ const routes = [
   ...evidenceRoutes,
   ...connectorRoutes,
   ...auditPackRoutes,
+  ...aiInventoryRoutes,
+  ...aiConfigRoutes,
+  ...aiMonitoringRoutes,
 ].map(compile)
 
 /** "150-400" (default) → random latency in that range; "0" disables. */

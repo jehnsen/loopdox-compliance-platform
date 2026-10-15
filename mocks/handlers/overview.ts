@@ -1,5 +1,6 @@
 import type {
   ActivityItem,
+  AiOverviewTile,
   AttentionItem,
   AttentionKind,
   ControlCoverage,
@@ -19,6 +20,7 @@ import { reviewStateOf, visibleDocs } from '@/mocks/handlers/documents'
 import { userName } from '@/mocks/helpers'
 import { json } from '@/mocks/http'
 import { canSeePrivacy, dueState } from '@/mocks/privacy'
+import { statsFor } from '@/mocks/ai'
 import { visibleRecords } from '@/mocks/records'
 import { orgRoute, type OrgCtx, type RouteDef } from '@/mocks/router'
 
@@ -319,6 +321,19 @@ function controlCoverage(ctx: OrgCtx): ControlCoverage[] | null {
   })
 }
 
+/** The last 30 days of proxy numbers, with a daily sparkline. */
+function aiTile(ctx: OrgCtx): AiOverviewTile | null {
+  if (!hasFeature(ctx.org.tier, 'aiGovernance') || !ctx.can('ai.read')) return null
+  const stats = statsFor(ctx)
+  return {
+    status: stats.status,
+    calls: stats.totals.calls,
+    piiMasked: stats.totals.piiMasked,
+    blocked: stats.totals.blocked,
+    series: stats.days.map((d) => d.calls),
+  }
+}
+
 const RECORD_TYPES: readonly RecordType[] = [
   'document',
   'processing_activity',
@@ -390,6 +405,7 @@ export const overviewRoutes: RouteDef[] = [
       documents: documentCounts(ctx),
       attention: { total: items.length, counts, items },
       controlCoverage: controlCoverage(ctx),
+      ai: aiTile(ctx),
       recentActivity: operational ? recentActivity(ctx, 10) : null,
     }
     return json(body)

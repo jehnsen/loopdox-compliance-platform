@@ -289,6 +289,55 @@ for (const scheme of ['light', 'dark'] as const) {
       await expectNoViolations(page, 'connector dialog')
     })
 
+    test('ai governance pages and dialogs', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen)
+      for (const path of [
+        '/3rdloop/ai-governance',
+        '/3rdloop/ai-governance/inventory',
+        '/3rdloop/ai-governance/inventory/aiu_3l_2',
+        '/3rdloop/ai-governance/inventory/new',
+        '/3rdloop/ai-governance/assessments',
+        '/3rdloop/ai-governance/assessments/aia_3l_3',
+        '/3rdloop/ai-governance/assessments/aia_3l_1',
+        '/3rdloop/ai-governance/profiles',
+        '/3rdloop/ai-governance/keys',
+        '/3rdloop/ai-governance/events',
+        '/sample-clinic/ai-governance',
+      ]) {
+        await page.goto(path)
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+        await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
+        await expectNoViolations(page, path)
+      }
+
+      await page.goto('/3rdloop/ai-governance')
+      await expect(page.getByTestId('time-series').first()).toBeVisible()
+      await page.getByRole('button', { name: 'View as table' }).click()
+      await expect(page.getByRole('table', { name: 'Daily proxy statistics' })).toBeVisible()
+      await expectNoViolations(page, 'ai overview, table view')
+
+      await page.goto('/3rdloop/ai-governance/keys')
+      await page.getByRole('button', { name: 'Add key' }).first().click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'add key dialog')
+      await page.getByRole('radio', { name: /Bring your own key/ }).check()
+      await expectNoViolations(page, 'add key dialog, bring your own key')
+      await page.keyboard.press('Escape')
+
+      await page.goto('/3rdloop/ai-governance/profiles')
+      await page
+        .getByTestId('prompt-tester')
+        .getByLabel('Prompt to test')
+        .fill('Mail ana@example.com')
+      await page.getByRole('button', { name: 'Test prompt' }).click()
+      await expect(page.getByTestId('test-result')).toBeVisible()
+      await expectNoViolations(page, 'profiles with a test result')
+
+      await signInAs(page, USERS.vsOwner, '/bayanihan-law')
+      await expect(page.getByTestId('ai-card')).toBeVisible()
+      await expectNoViolations(page, 'visorshield-only overview')
+    })
+
     test('read-only views for the approver and auditor', async ({ page }) => {
       await signInAs(page, USERS.michael, '/3rdloop/security/risks')
       await expect(page.getByRole('table').first()).toBeVisible()

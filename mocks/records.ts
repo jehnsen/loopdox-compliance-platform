@@ -216,6 +216,23 @@ export const RECORDS: Record<RecordType, RecordSource> = {
         : [],
     stored: finder((ctx) => ctx.db.controls),
   },
+  ai_use_case: {
+    visible: (ctx) =>
+      ctx.can('ai.read')
+        ? inOrg(ctx, ctx.db.aiUseCases).map((u) =>
+            entry(
+              ctx,
+              'ai_use_case',
+              u,
+              u.ref,
+              u.name,
+              u.status,
+              `${u.tool} ${u.provider} ${u.model} ${u.purpose}`,
+            ),
+          )
+        : [],
+    stored: finder((ctx) => ctx.db.aiUseCases),
+  },
 }
 
 /** Whether the org's plan includes the module a record type belongs to. */

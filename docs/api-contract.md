@@ -842,11 +842,83 @@ The client's file in its original format (`text/csv` or the XLSX type), named `<
 
 ---
 
+## AI Governance — M8
+
+Feature `aiGovernance` (Premium, and VisorShield-only tenants; everyone else gets 403 `feature_not_in_plan`). Reads need `ai.read` (owner, admin, DPO, CTO, approver, **auditor**). Writes need `ai.edit` (owner, admin, DPO, CTO). Lists follow the shared conventions. Updates send `ifVersion` and return 409 on a mismatch. Types are in `lib/api/types.ts`; request bodies are validated with `lib/schemas/ai.ts`; the question set, recognizers and guardrails are listed in `lib/ai.ts`.
+
+### Use cases
+
+`AiUseCase`: `ref` (`AI-NNN`), `name`, `tool`, `provider`, `model`, `purpose`, `dataCategories[]`, `systemIds[]`, `processingActivityIds[]`, `riskLevel` (`low | medium | high`), `owner`, `status` (`proposed | approved | rejected | retired`), `notes`. `AiUseCaseSummary` adds `ownerName`, `updatedByName`, `systemNames`, `processingRefs`, `assessmentState` (`none | in_progress | decided`), `latestAssessment` (`{ id, ref, decision, riskLevel, decidedAt, humanOversight, conditions }`) and `openAssessmentId`.
+
+| Endpoint                   | Notes                                                                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /ai/use-cases`        | Default sort `ref`. Filters: `status`, `risk`, `assessment` (`none,in_progress,decided`), `owner`. `q` searches ref, name, tool, provider, model, purpose and data categories.                                                                    |
+| `POST /ai/use-cases`       | Name, tool, provider, model, purpose (at least 10 characters), `dataCategories`, `riskLevel`, `owner` (an active non-auditor member), `notes` → 201, `status: "proposed"`. Systems and processing records are linked afterwards through `/links`. |
+| `GET /ai/use-cases/:id`    | The ID or the reference.                                                                                                                                                                                                                          |
+| `PATCH /ai/use-cases/:id`  | The same fields + `ifVersion`, and optional `status`. **Only `retired` and `proposed` (reopen) are accepted**; approval and rejection come from an assessment (400 otherwise).                                                                    |
+| `DELETE /ai/use-cases/:id` | 204. 422 unless the use case is `proposed` and has no decided assessment; anything else is retired. Deletes its in-progress assessments.                                                                                                          |
+
+`ai_use_case` is a link record type: relations `systemIds` → system and `processingActivityIds` → processing record are stored on the use case and edited with `ai.edit` (`GET`/`POST`/`DELETE /links`). Search adds the `ai_use_case` group (ref, name, tool, provider, model, purpose, data categories), linking to `/:org/ai-governance/inventory/:id`.
+
+### Assessments
+
+`AiAssessment`: `ref` (`AIA-NNN`), `useCaseId`, `status` (`in_progress | decided`), `questions[]` (`{ id, q, answer: "yes" | "no" | "unsure" | null, note }`), `riskLevel`, `humanOversight`, `oversightNote`, `decision` (`approved | approved_with_conditions | rejected`), `conditions`, `decidedBy`, `decidedAt`. `AiAssessmentSummary` adds `useCaseRef`, `useCaseName`, `decidedByName`, `suggestedRisk`, `answered`, `total`.
+
+The question set is fixed (8 questions, worded so "Yes" is the riskier answer). `suggestedRisk`: "Yes" adds the question's weight, "Not sure" half, unanswered nothing; under 3 is `low`, under 7 `medium`, otherwise `high`. The backend and `lib/ai.ts` must agree on the weights.
+
+| Endpoint                          | Notes                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /ai/assessments`             | Default sort `-ref`. Filters: `status`, `decision` (`none` for undecided), `useCaseId`, `risk` (final, or suggested while open).                                                                                                                                                                                                                                                       |
+| `POST /ai/assessments`            | `{ useCaseId }` ("Run assessment") → 201 with a blank question set. 422 if one is already `in_progress` for that use case, or the use case is retired.                                                                                                                                                                                                                                 |
+| `GET /ai/assessments/:id`         |                                                                                                                                                                                                                                                                                                                                                                                        |
+| `PATCH /ai/assessments/:id`       | `{ ifVersion, questions?: [{ id, answer, note }], humanOversight?, oversightNote? }`. 422 once decided.                                                                                                                                                                                                                                                                                |
+| `POST /ai/assessments/:id/decide` | `{ ifVersion, decision, riskLevel, humanOversight, oversightNote, conditions }`. 422 while any question is unanswered; 400 on `conditions` (at least 10 characters) for `approved_with_conditions`. Sets the assessment `decided`, the use case's `riskLevel`, and its `status` (`approved` for both approvals, `rejected`). Audit `ai_assessment.decided` and `ai_use_case.assessed`. |
+| `DELETE /ai/assessments/:id`      | 204. Only while `in_progress` (422 otherwise: a decided assessment is a record).                                                                                                                                                                                                                                                                                                       |
+
+### Policy profiles
+
+`AiProfile`: `key` (`law_firm | clinic | govtech | custom`), `name`, `description`, `piiRecognizers[]`, `guardrails[]`, `blockedTopics[]`, `enabled`. Recognizer IDs: `PERSON_NAME`, `EMAIL`, `PH_PHONE`, `PH_TIN`, `PH_SSS`, `PH_PHILSYS`, `PH_PHILHEALTH`, `CREDIT_CARD`, `IP_ADDRESS`. Guardrail IDs: `prompt_injection`, `secrets`, `bulk_export`, `output_pii`. There are four profiles per organisation and several may be enabled.
+
+| Endpoint                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /ai/profiles`           | All four, in the order above.                                                                                                                                                                                                                                                                                                                                                                                        |
+| `GET /ai/profiles/:id`       | The ID or the key.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `PATCH /ai/profiles/:id`     | `{ ifVersion, piiRecognizers, guardrails, blockedTopics, enabled }`. 400 on an unknown recognizer or guardrail ID; topics are 2–80 characters, at most 30, and de-duplicated without regard to case. Audit `ai_profile.updated`.                                                                                                                                                                                     |
+| `POST /ai/profiles/:id/test` | `ai.read`. `{ prompt, config?: { piiRecognizers, guardrails, blockedTopics } }` → `AiPromptTestResult` `{ action: "masked" \| "blocked" \| "allowed", masked, findings: [{ type, label, count }], reasons[] }`. `config` tries settings that aren't saved. **Nothing is stored or logged.** `masked` is the prompt with matches replaced (`[PH_TIN]`). The mock is a stand-in: the real endpoint is the proxy's own. |
+
+### Provider keys
+
+`AiProviderKey`: `provider` (`openai | anthropic | azure_openai | google | other`), `label`, `storage` (`fernet | azure_key_vault | byok`), `last4`, `reference` (BYOK only), `rotatedAt`. **There is no field that holds a key, and no endpoint returns one.**
+
+| Endpoint                   | Notes                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /ai/keys`             | Default sort `label`. Filters: `provider`, `storage`.                                                                                                                                                                                                                                                                                          |
+| `POST /ai/keys`            | `{ provider, label, storage, key }` for `fernet` and `azure_key_vault` (at least 20 characters; `last4` is taken from it). For `byok`: `{ …, reference, last4 }` and **no `key`** (400 on `key`: the key never reaches LoopDox). → 201 `AiProviderKey`. The key is never echoed, logged, written to the audit log, or put in an error message. |
+| `POST /ai/keys/:id/rotate` | `{ key }`, or `{ reference, last4 }` for BYOK. Sets `last4` and `rotatedAt`. Audit `ai_key.rotated` with the last four only.                                                                                                                                                                                                                   |
+| `DELETE /ai/keys/:id`      | 204. Audit `ai_key.deleted` with the last four only.                                                                                                                                                                                                                                                                                           |
+
+### Statistics and events
+
+`GET /ai/stats?from=&to=` → `AiStats`: `{ from, to, status: "healthy" | "degraded", statusNote, latencyP95Ms, uptimePct, checkedAt, days: AiStatsDay[], totals, previous, topBlocked: [{ reason, count }] }`. Defaults to the last 30 days; at most 90 days at a time (400 otherwise; so is `from` after `to`). `AiStatsDay`: `date`, `calls`, `piiMasked`, `blocked`, `cacheHits`, `costEstimatePhp`. `previous` is the period of the same length just before, or `null` when it isn't on record. `topBlocked` is the five biggest reasons in the window. The cache hit rate is `cacheHits / calls`.
+
+`GET /ai/events`: `AiEvent` `{ id, at, app, userId, userName, action: "masked" | "blocked" | "allowed", profile, model, entities: [{ type, count }], reason, maskedSample }`. Default sort `-at`. Filters: `action`, `app`, `profile`, `user` (a user ID, or `service` for a service account), `from`, `to` (calendar dates in the org's timezone). `q` searches app, user, reason, sample and profile. `GET /ai/events/facets` → `{ apps, profiles, users: [{ id, name }] }` for the filter menus.
+
+**Backend must enforce: `maskedSample` is what the proxy forwarded, with every match already replaced. A raw prompt never reaches LoopDox**, in events, statistics, the audit log or search.
+
+### Dashboard (M8)
+
+`GET /overview` gains `ai`: `{ status, calls, piiMasked, blocked, series: number[] }` (the last 30 days, `series` = daily calls oldest first), or `null` without the plan or `ai.read`. VisorShield-only tenants get `documents: null`, `controlCoverage: null` and this tile.
+
+### Audit actions (M8)
+
+`ai_use_case.created|updated|retired|reopened|deleted|assessed`, `ai_assessment.started|decided|cancelled`, `ai_profile.updated`, `ai_key.created|rotated|deleted`.
+
 ## Test-only endpoints (mock mode)
 
 Available only when `API_MODE=mock` and `MOCK_ALLOW_RESET=1` (the Playwright config sets both); otherwise 404. Not part of the FastAPI contract.
 
-| Endpoint               | Body                    | Effect                               |
-| ---------------------- | ----------------------- | ------------------------------------ |
-| `POST /api/mock/reset` | –                       | Reseeds the store                    |
-| `POST /api/mock/usage` | `{ org, askQuestions }` | Sets this month's Ask question count |
+| Endpoint                  | Body                                        | Effect                                                  |
+| ------------------------- | ------------------------------------------- | ------------------------------------------------------- |
+| `POST /api/mock/reset`    | –                                           | Reseeds the store                                       |
+| `POST /api/mock/usage`    | `{ org, askQuestions }`                     | Sets this month's Ask question count                    |
+| `POST /api/mock/ai-proxy` | `{ org, status }` (`healthy` or `degraded`) | Sets the VisorShield proxy status the statistics report |

@@ -376,6 +376,8 @@ export interface OverviewResponse {
   }
   /** null on plans without Evidence, or without `evidence.read`. */
   controlCoverage: ControlCoverage[] | null
+  /** null without the AI Governance plan or `ai.read`. */
+  ai: AiOverviewTile | null
   /** null for staff and auditor-only members. */
   recentActivity: ActivityItem[] | null
 }
@@ -593,6 +595,7 @@ export type RecordType =
   | 'change'
   | 'decision'
   | 'control'
+  | 'ai_use_case'
 
 /** A pointer to any record: enough to render an ID chip, a title and a link. */
 export interface RecordRef {
@@ -1718,4 +1721,246 @@ export interface QuestionnaireRowUpdate {
 export interface QuestionnaireRowResult extends QuestionnaireRow {
   questionnaireStatus: QuestionnaireStatus
   progress: QuestionnaireProgress
+}
+
+// ---------------------------------------------------------------------------
+// AI Governance (M8): VisorShield
+// ---------------------------------------------------------------------------
+
+export type AiRiskLevel = 'low' | 'medium' | 'high'
+export type AiUseCaseStatus = 'proposed' | 'approved' | 'rejected' | 'retired'
+
+export interface AiUseCase extends BaseEntity {
+  /** "AI-001" */
+  ref: string
+  name: string
+  /** The product or app people use, e.g. "GitHub Copilot". */
+  tool: string
+  provider: string
+  model: string
+  purpose: string
+  dataCategories: string[]
+  systemIds: string[]
+  processingActivityIds: string[]
+  riskLevel: AiRiskLevel
+  /** User ID. */
+  owner: string
+  status: AiUseCaseStatus
+  notes: string
+}
+
+export type AiAssessmentState = 'none' | 'in_progress' | 'decided'
+
+export interface AiUseCaseSummary extends AiUseCase {
+  ownerName: string
+  updatedByName: string
+  systemNames: string[]
+  processingRefs: { id: string; ref: string; name: string }[]
+  assessmentState: AiAssessmentState
+  /** The newest decided assessment, if any. */
+  latestAssessment: {
+    id: string
+    ref: string
+    decision: AiAssessmentDecision
+    riskLevel: AiRiskLevel
+    decidedAt: ISODateTime
+    humanOversight: boolean | null
+    conditions: string
+  } | null
+  /** The assessment being worked on, if any. */
+  openAssessmentId: string | null
+}
+
+export type AiAnswer = 'yes' | 'no' | 'unsure'
+export type AiAssessmentStatus = 'in_progress' | 'decided'
+export type AiAssessmentDecision = 'approved' | 'approved_with_conditions' | 'rejected'
+
+export interface AiAssessmentQuestion {
+  /** Stable key from the question set in lib/ai.ts. */
+  id: string
+  q: string
+  answer: AiAnswer | null
+  note: string
+}
+
+export interface AiAssessment extends BaseEntity {
+  /** "AIA-001" */
+  ref: string
+  useCaseId: string
+  status: AiAssessmentStatus
+  questions: AiAssessmentQuestion[]
+  /** The assessor's final rating. null until decided. */
+  riskLevel: AiRiskLevel | null
+  /** Must a person check outputs before they are used? null until decided. */
+  humanOversight: boolean | null
+  oversightNote: string
+  decision: AiAssessmentDecision | null
+  /** Required when the decision is "approved_with_conditions". */
+  conditions: string
+  decidedBy: string | null
+  decidedAt: ISODateTime | null
+}
+
+export interface AiAssessmentSummary extends AiAssessment {
+  useCaseRef: string
+  useCaseName: string
+  decidedByName: string | null
+  /** Rating the answers so far point to (lib/ai.ts). */
+  suggestedRisk: AiRiskLevel
+  answered: number
+  total: number
+}
+
+export interface AiAssessmentUpdate {
+  ifVersion: number
+  questions?: { id: string; answer: AiAnswer | null; note: string }[]
+  humanOversight?: boolean | null
+  oversightNote?: string
+}
+
+export interface AiAssessmentDecide {
+  ifVersion: number
+  decision: AiAssessmentDecision
+  riskLevel: AiRiskLevel
+  humanOversight: boolean
+  oversightNote: string
+  conditions: string
+}
+
+export type AiProfileKey = 'law_firm' | 'clinic' | 'govtech' | 'custom'
+
+export interface AiProfile extends BaseEntity {
+  key: AiProfileKey
+  name: string
+  description: string
+  /** Recognizer IDs (lib/ai.ts) that mask matches before a prompt leaves. */
+  piiRecognizers: string[]
+  /** Guardrail IDs (lib/ai.ts). */
+  guardrails: string[]
+  blockedTopics: string[]
+  enabled: boolean
+}
+
+export interface AiProfileUpdate {
+  ifVersion: number
+  piiRecognizers: string[]
+  guardrails: string[]
+  blockedTopics: string[]
+  enabled: boolean
+}
+
+/** Settings to try without saving them. */
+export interface AiProfileConfig {
+  piiRecognizers: string[]
+  guardrails: string[]
+  blockedTopics: string[]
+}
+
+export interface AiPromptTest {
+  prompt: string
+  /** Try these settings instead of the saved ones. */
+  config?: AiProfileConfig
+}
+
+export interface AiPromptTestResult {
+  action: AiEventAction
+  /** The prompt as it would leave: matches replaced by [PH_TIN] and the like. */
+  masked: string
+  findings: { type: string; label: string; count: number }[]
+  /** Why it would be blocked. Empty unless `action` is "blocked". */
+  reasons: string[]
+}
+
+export type AiKeyProvider = 'openai' | 'anthropic' | 'azure_openai' | 'google' | 'other'
+export type AiKeyStorage = 'fernet' | 'azure_key_vault' | 'byok'
+
+/** Never carries the key itself, only its last four characters. */
+export interface AiProviderKey extends BaseEntity {
+  provider: AiKeyProvider
+  label: string
+  storage: AiKeyStorage
+  last4: string
+  /** BYOK: where the customer keeps the key. null for the other storage types. */
+  reference: string | null
+  /** When the key was added or last replaced. */
+  rotatedAt: ISODateTime
+}
+
+/** POST /ai/keys and POST /ai/keys/:id/rotate. The key is sent once and never returned. */
+export interface AiKeyInput {
+  provider: AiKeyProvider
+  label: string
+  storage: AiKeyStorage
+  /** fernet and azure_key_vault: the key. */
+  key?: string
+  /** byok: the vault reference and the key's last four characters. */
+  reference?: string
+  last4?: string
+}
+
+export type AiEventAction = 'masked' | 'blocked' | 'allowed'
+
+export interface AiEvent {
+  id: string
+  orgId: string
+  at: ISODateTime
+  /** The app that called the proxy. */
+  app: string
+  /** Who triggered it. null for a service account. */
+  userId: string | null
+  userName: string
+  action: AiEventAction
+  profile: string
+  model: string
+  /** What was found and masked or blocked, by type. */
+  entities: { type: string; count: number }[]
+  /** Why it was blocked. */
+  reason: string | null
+  /** The prompt as the proxy forwarded it, matches already replaced. Never the raw prompt. */
+  maskedSample: string
+}
+
+export interface AiStatsDay {
+  date: ISODate
+  calls: number
+  piiMasked: number
+  blocked: number
+  cacheHits: number
+  costEstimatePhp: number
+}
+
+export interface AiTotals {
+  calls: number
+  piiMasked: number
+  blocked: number
+  cacheHits: number
+  costEstimatePhp: number
+}
+
+export type AiProxyStatus = 'healthy' | 'degraded'
+
+/** GET /ai/stats?from&to */
+export interface AiStats {
+  from: ISODate
+  to: ISODate
+  status: AiProxyStatus
+  statusNote: string
+  latencyP95Ms: number
+  uptimePct: number
+  checkedAt: ISODateTime
+  days: AiStatsDay[]
+  totals: AiTotals
+  /** The period of the same length just before this one. null when it isn't on record. */
+  previous: AiTotals | null
+  topBlocked: { reason: string; count: number }[]
+}
+
+export interface AiOverviewTile {
+  status: AiProxyStatus
+  /** Last 30 days. */
+  calls: number
+  piiMasked: number
+  blocked: number
+  /** Daily calls for the last 30 days, oldest first. */
+  series: number[]
 }

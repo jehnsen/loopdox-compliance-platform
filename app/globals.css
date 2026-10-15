@@ -34,6 +34,8 @@
   --bad: #b1232c;
   --bad-soft: #fbe2e3;
   --premium: #6d3fc0;
+  /* Chart series 1: the validated reference blue (>= 3:1 on the surface in both themes). */
+  --viz-1: #2a78d6;
   --overlay: rgb(15 18 32 / 0.45);
   --shadow-pop: 0 8px 24px -6px rgb(23 27 46 / 0.18), 0 2px 6px -2px rgb(23 27 46 / 0.12);
 
@@ -74,6 +76,7 @@
   --bad: #ff8d93;
   --bad-soft: #3d1c20;
   --premium: #b99cff;
+  --viz-1: #3987e5;
   --overlay: rgb(0 0 0 / 0.6);
   --shadow-pop: 0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
   color-scheme: dark;
@@ -97,6 +100,7 @@
     --bad: #ff8d93;
     --bad-soft: #3d1c20;
     --premium: #b99cff;
+    --viz-1: #3987e5;
     --overlay: rgb(0 0 0 / 0.6);
     --shadow-pop: 0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
     color-scheme: dark;
@@ -123,6 +127,7 @@
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
   --color-premium: var(--premium);
+  --color-viz-1: var(--viz-1);
   --color-overlay: var(--overlay);
 
   --color-background: var(--background);

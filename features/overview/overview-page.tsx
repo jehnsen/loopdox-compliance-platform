@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/page-header'
 import { ErrorState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AiCard } from '@/features/overview/ai-card'
 import { AskBox } from '@/features/overview/ask-box'
 import { CoverageCard } from '@/features/overview/coverage-card'
 import { DocumentsCard } from '@/features/overview/documents-card'
@@ -51,6 +52,7 @@ function Dashboard({ operational }: { operational: boolean }) {
     <>
       {data.documents ? <DocumentsCard org={org.slug} counts={data.documents} /> : null}
       {data.controlCoverage ? <CoverageCard coverage={data.controlCoverage} /> : null}
+      {data.ai ? <AiCard org={org.slug} ai={data.ai} /> : null}
     </>
   )
   return (
@@ -62,7 +64,7 @@ function Dashboard({ operational }: { operational: boolean }) {
           </div>
           <div className="flex flex-col gap-4">{tiles}</div>
         </div>
-      ) : data.documents || data.controlCoverage ? (
+      ) : data.documents || data.controlCoverage || data.ai ? (
         <div className="grid items-start gap-4 md:grid-cols-2">{tiles}</div>
       ) : null}
       {data.recentActivity ? <RecentActivity items={data.recentActivity} /> : null}
@@ -79,8 +81,9 @@ export function OverviewPage() {
   const canReport = hasFeature(tier, 'privacy') && can('incidents.report')
   const canAsk = hasFeature(tier, 'ask.policy') && can('ask.use')
   const auditor = isAuditorOnly(session)
-  // Staff get the simplified overview; VisorShield-only tenants have no registers to summarise.
-  const showDashboard = !staffOnly && tier !== 'visorshield_only'
+  // Staff get the simplified overview. VisorShield-only tenants have no registers to
+  // summarise, so their dashboard is the AI governance tile alone.
+  const showDashboard = !staffOnly
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,7 +122,7 @@ export function OverviewPage() {
         </p>
       ) : null}
 
-      {showDashboard ? <Dashboard operational={!auditor} /> : null}
+      {showDashboard ? <Dashboard operational={!auditor && tier !== 'visorshield_only'} /> : null}
 
       <section aria-labelledby="areas" className="flex flex-col gap-3">
         <h2 id="areas" className="label-caps">

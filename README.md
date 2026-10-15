@@ -19,7 +19,7 @@ This repo is the **frontend only** (Next.js App Router). The FastAPI backend is 
 | M5 Security: systems, access reviews, secrets, changes, risks, decisions                                                                           | ✅ Done |
 | M6 Evidence: controls, uploads, connectors, auditor audit pack                                                                                     | ✅ Done |
 | M7 Ask & Questionnaires: streamed cited answers, threads, sources panel, as-of mode, Quick Ask; questionnaire upload, mapping, review grid, export | ✅ Done |
-| M8 AI Governance                                                                                                                                   | Next    |
+| M8 AI Governance: overview charts, inventory, assessments, policy profiles with a prompt tester, provider keys, events                             | ✅ Done |
 | M9 Settings & hardening                                                                                                                            | Planned |
 
 Modules not built yet already appear in the navigation. They open a placeholder that applies the real permission check and plan gate.
@@ -175,7 +175,7 @@ app/                      routes (App Router)
 components/ui/            shadcn-style primitives, restyled to our tokens
 components/shell/         AppShell, Sidebar, TopBar, OrgSwitcher, CommandPalette, NotificationsBell, UserMenu, IdleTimeout
 components/               shared blocks: PageHeader, MetadataStrip, StatusPill, chips, states, UpgradeCard, ConfirmDialog, Gate…
-features/<module>/        module components, hooks and forms (policies/ M2, privacy/ M3, security/ M5, evidence/ M6, ask/ and questionnaires/ M7)
+features/<module>/        module components, hooks and forms (policies/ M2, privacy/ M3, security/ M5, evidence/ M6, ask/ and questionnaires/ M7, ai-governance/ M8)
 components/data-table/    DataTable (server paging/sort/filters in the URL), FacetFilter
 components/markdown/      MarkdownView (sanitised, [[ID]] links), MarkdownEditor (CodeMirror, lazy)
 components/form/          FormField, PeoplePicker, RecordPicker, TagInput, DateField (timezone-aware), ScoreInput

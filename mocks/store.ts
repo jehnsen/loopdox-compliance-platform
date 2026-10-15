@@ -2,6 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type {
   AccessGrant,
+  AiAssessment,
+  AiEvent,
+  AiProfile,
+  AiProviderKey,
+  AiProxyStatus,
+  AiStatsDay,
+  AiUseCase,
   AccessReview,
   Acknowledgement,
   AskMessage,
@@ -103,6 +110,13 @@ export interface MockDB {
   decisions: Decision[]
   evidence: Evidence[]
   connectors: Connector[]
+  aiUseCases: AiUseCase[]
+  aiAssessments: AiAssessment[]
+  aiProfiles: AiProfile[]
+  aiKeys: AiProviderKey[]
+  aiEvents: AiEvent[]
+  aiDays: MockAiDay[]
+  aiProxy: MockAiProxy[]
   files: MockFile[]
   processingActivities: ProcessingActivity[]
   pias: Pia[]
@@ -144,6 +158,21 @@ export interface MockQuestionnaire extends BaseEntity {
   cells: string[][]
   mapping: QuestionnaireMapping | null
   rows: (Omit<QuestionnaireRow, 'editorName'> & { version: number; cellRow: number })[]
+}
+
+/** One day of proxy statistics, with the blocked count split by reason. */
+export interface MockAiDay extends AiStatsDay {
+  orgId: string
+  reasons: Record<string, number>
+}
+
+export interface MockAiProxy {
+  orgId: string
+  status: AiProxyStatus
+  latencyP95Ms: number
+  uptimePct: number
+  note: string
+  checkedAt: string
 }
 
 /** Upload metadata. The mock keeps no file contents. */

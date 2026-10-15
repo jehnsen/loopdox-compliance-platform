@@ -28,6 +28,20 @@ export function seedOrgs(now: Date): Org[] {
       updatedAt: created,
     },
     {
+      id: 'org_bayanihan',
+      slug: 'bayanihan-law',
+      name: 'Bayanihan Law Offices',
+      // VisorShield sold on its own: Overview, AI Governance and Settings only.
+      tier: 'visorshield_only',
+      timezone: 'Asia/Manila',
+      currency: 'PHP',
+      logoUrl: null,
+      settings: { dsrResponseDays: 30, reviewReminderLeadDays: 30, classificationLabels },
+      version: 1,
+      createdAt: created,
+      updatedAt: created,
+    },
+    {
       id: 'org_sample_clinic',
       slug: 'sample-clinic',
       name: 'Sample Clinic',
@@ -68,6 +82,18 @@ export const SEED_USERS: readonly Omit<MockUser, 'password'>[] = [
     name: 'External Auditor',
     email: 'auditor@audit-firm.example',
     title: 'ISO 27001 Lead Auditor',
+  },
+  {
+    id: 'usr_vs_owner',
+    name: 'Ramon Dela Cruz',
+    email: 'ramon.delacruz@bayanihan-law.example',
+    title: 'Managing Partner',
+  },
+  {
+    id: 'usr_vs_associate',
+    name: 'Bea Lim',
+    email: 'bea.lim@bayanihan-law.example',
+    title: 'Associate',
   },
   {
     id: 'usr_clinic_dpo',
@@ -116,6 +142,8 @@ export function seedMemberships(now: Date): MockMembership[] {
     m('mem_sc_jehnsen', 'org_sample_clinic', 'usr_jehnsen', ['admin']),
     m('mem_sc_dpo', 'org_sample_clinic', 'usr_clinic_dpo', ['owner', 'dpo', 'approver']),
     m('mem_sc_staff', 'org_sample_clinic', 'usr_clinic_staff', ['staff']),
+    m('mem_vs_owner', 'org_bayanihan', 'usr_vs_owner', ['owner']),
+    m('mem_vs_associate', 'org_bayanihan', 'usr_vs_associate', ['staff']),
   ]
 }
 
