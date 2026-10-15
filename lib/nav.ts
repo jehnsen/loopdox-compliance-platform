@@ -42,7 +42,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { Permission, Role, Tier } from '@/lib/api/types'
-import { can } from '@/lib/auth/permissions'
+import { can, isAuditorOnly } from '@/lib/auth/permissions'
 import { hasFeature, type Feature } from '@/lib/entitlements'
 
 export interface NavItem {
@@ -239,7 +239,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/evidence/controls',
         icon: ListChecksIcon,
         permission: 'evidence.read',
-        milestone: 'M6',
       },
       {
         id: 'connectors',
@@ -247,7 +246,6 @@ export const NAV: readonly NavGroup[] = [
         path: '/evidence/connectors',
         icon: PlugIcon,
         permission: 'evidence.read',
-        milestone: 'M6',
       },
       {
         id: 'uploads',
@@ -255,7 +253,13 @@ export const NAV: readonly NavGroup[] = [
         path: '/evidence/uploads',
         icon: UploadIcon,
         permission: 'evidence.read',
-        milestone: 'M6',
+      },
+      {
+        id: 'audit-pack',
+        label: 'Audit pack',
+        path: '/evidence/audit-pack',
+        icon: FileCheck2Icon,
+        permission: 'evidence.read',
       },
     ],
   },
@@ -453,3 +457,14 @@ export function findNavItem(subpath: string): { group: NavGroup; item: NavItem }
 export const ReportIncidentIcon = ShieldAlertIcon
 export const DsrIcon = FileClockIcon
 export const NewPolicyIcon = FileTextIcon
+
+/**
+ * Where someone lands after choosing or being given an organisation. External auditors
+ * go to the read-only Audit pack when the plan has Evidence; everyone else to Overview.
+ */
+export function landingPath(slug: string, roles: readonly Role[], tier: Tier): string {
+  if (isAuditorOnly({ roles }) && hasFeature(tier, 'evidence')) {
+    return `/${slug}/evidence/audit-pack`
+  }
+  return `/${slug}`
+}

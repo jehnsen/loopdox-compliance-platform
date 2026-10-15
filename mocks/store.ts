@@ -4,9 +4,15 @@ import type {
   AccessGrant,
   AccessReview,
   Acknowledgement,
+  AskMessage,
+  BaseEntity,
+  QuestionnaireFormat,
+  QuestionnaireMapping,
+  QuestionnaireRow,
   Agreement,
   Change,
   AuditEvent,
+  Connector,
   Control,
   Decision,
   Document,
@@ -96,6 +102,7 @@ export interface MockDB {
   changes: Change[]
   decisions: Decision[]
   evidence: Evidence[]
+  connectors: Connector[]
   files: MockFile[]
   processingActivities: ProcessingActivity[]
   pias: Pia[]
@@ -104,6 +111,39 @@ export interface MockDB {
   agreements: Agreement[]
   registrations: Registration[]
   trainingRecords: TrainingRecord[]
+  askThreads: MockAskThread[]
+  askMessages: MockAskMessage[]
+  questionnaires: MockQuestionnaire[]
+}
+
+export interface MockAskThread {
+  id: string
+  orgId: string
+  userId: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MockAskMessage extends AskMessage {
+  orgId: string
+  userId: string
+}
+
+/** Stored questionnaire: the parsed file (header + rows) and the reviewed answers. */
+export interface MockQuestionnaire extends BaseEntity {
+  name: string
+  client: string
+  fileName: string
+  format: QuestionnaireFormat
+  sheetName: string
+  uploadedAt: string
+  uploadedBy: string
+  header: string[]
+  /** Data rows under the header, as parsed. */
+  cells: string[][]
+  mapping: QuestionnaireMapping | null
+  rows: (Omit<QuestionnaireRow, 'editorName'> & { version: number; cellRow: number })[]
 }
 
 /** Upload metadata. The mock keeps no file contents. */

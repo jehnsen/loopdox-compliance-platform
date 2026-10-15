@@ -28,6 +28,7 @@ export default defineConfig({
       MOCK_LATENCY_MS: '0',
       MOCK_DB_FILE: '.mock-db.e2e.json',
       MOCK_ALLOW_RESET: '1',
+      MOCK_STREAM_DELAY_MS: '40',
     },
   },
 })

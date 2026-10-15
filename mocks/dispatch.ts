@@ -1,9 +1,12 @@
 import { verifyMockToken } from '@/mocks/auth'
 import { accessRoutes } from '@/mocks/handlers/access'
 import { agreementRoutes } from '@/mocks/handlers/agreements'
+import { askRoutes } from '@/mocks/handlers/ask'
 import { auditEventRoutes } from '@/mocks/handlers/audit-events'
 import { authRoutes } from '@/mocks/handlers/auth'
+import { auditPackRoutes } from '@/mocks/handlers/audit-pack'
 import { changeRoutes } from '@/mocks/handlers/changes'
+import { connectorRoutes } from '@/mocks/handlers/connectors'
 import { controlRoutes } from '@/mocks/handlers/controls'
 import { decisionRoutes } from '@/mocks/handlers/decisions'
 import { documentRoutes } from '@/mocks/handlers/documents'
@@ -18,6 +21,7 @@ import { orgRoutes } from '@/mocks/handlers/orgs'
 import { overviewRoutes } from '@/mocks/handlers/overview'
 import { piaRoutes } from '@/mocks/handlers/pias'
 import { processingRoutes } from '@/mocks/handlers/processing'
+import { questionnaireRoutes } from '@/mocks/handlers/questionnaires'
 import { registrationRoutes } from '@/mocks/handlers/registrations'
 import { riskRoutes } from '@/mocks/handlers/risks'
 import { searchRoutes } from '@/mocks/handlers/search'
@@ -35,6 +39,8 @@ const routes = [
   ...searchRoutes,
   ...overviewRoutes,
   ...auditEventRoutes,
+  ...askRoutes,
+  ...questionnaireRoutes,
   ...documentRoutes,
   ...controlRoutes,
   ...linkRoutes,
@@ -52,6 +58,8 @@ const routes = [
   ...riskRoutes,
   ...decisionRoutes,
   ...evidenceRoutes,
+  ...connectorRoutes,
+  ...auditPackRoutes,
 ].map(compile)
 
 /** "150-400" (default) → random latency in that range; "0" disables. */

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
 import { FileCheck2Icon, PlugIcon, UploadIcon, UserPenIcon, type LucideIcon } from 'lucide-react'
 import type { EvidenceItem, EvidenceSource } from '@/lib/api/types'
 import { DateText } from '@/components/date-text'
@@ -22,6 +23,13 @@ const RESULT_PILLS = {
 
 /** A control's evidence, newest first: date, source, result, summary, the record it came from and any file. */
 export function EvidenceTimeline({ items }: { items: EvidenceItem[] }) {
+  // A link from search or the audit pack lands on one item: scroll it into view.
+  const count = items.length
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (id && count) document.getElementById(id)?.scrollIntoView({ block: 'center' })
+  }, [count])
+
   if (!items.length) {
     return (
       <EmptyState
@@ -39,14 +47,16 @@ export function EvidenceTimeline({ items }: { items: EvidenceItem[] }) {
         return (
           <li
             key={e.id}
+            id={e.id}
             data-testid="evidence-item"
-            className="flex flex-col gap-1.5 border-b border-line py-3 first:pt-0 last:border-b-0 last:pb-0"
+            className="flex scroll-mt-24 flex-col gap-1.5 border-b border-line py-3 first:pt-0 last:border-b-0 last:pb-0 target:-mx-2 target:rounded-md target:bg-accent-soft target:px-2"
           >
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
               <DateText value={e.collectedAt} withTime className="font-medium text-fg" />
               <span className="inline-flex items-center gap-1">
                 <source.icon className="size-3.5" aria-hidden="true" />
                 {source.label}
+                {e.connectorName ? ` · ${e.connectorName}` : ''}
               </span>
               <StatusPill status={result.status} label={result.label} />
             </div>

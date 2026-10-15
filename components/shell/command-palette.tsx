@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { CornerDownLeftIcon, ListIcon, LockIcon, MessageSquareTextIcon } from 'lucide-react'
 import { useSearch } from '@/lib/api/hooks/use-search'
+import { useQuickAsk } from '@/features/ask/quick-ask'
 import { can } from '@/lib/auth/permissions'
 import { hasFeature } from '@/lib/entitlements'
 import { en } from '@/lib/i18n/en'
@@ -85,6 +86,7 @@ export function CommandPalette({
   const shownActions = q ? actions.filter((a) => matches(a.label, q)) : actions
   const records = q.length >= 2 ? (search.data?.groups ?? []) : []
   const canAsk = can({ roles }, 'ask.use') && hasFeature(tier, 'ask.policy')
+  const quickAsk = useQuickAsk()
 
   const setOpen = (o: boolean) => {
     if (!o) setQuery('')
@@ -176,7 +178,10 @@ export function CommandPalette({
             <CommandGroup heading={en.shell.ask}>
               <CommandItem
                 value="ask"
-                onSelect={() => go(`/${org.slug}/ask?q=${encodeURIComponent(q)}`)}
+                onSelect={() => {
+                  setOpen(false)
+                  quickAsk.open(q)
+                }}
               >
                 <MessageSquareTextIcon aria-hidden="true" />
                 <span className="truncate">

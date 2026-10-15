@@ -18,13 +18,18 @@ function withClasses(
 
 /**
  * Strict sanitize schema: GitHub's defaults (no raw HTML, no scripts, no event
- * handlers, safe URL protocols), plus the classes our wiki links use.
+ * handlers, safe URL protocols), plus the classes our wiki links and Ask citations use.
  */
 export const markdownSchema: SanitizeSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
-    a: [...withClasses(defaultSchema.attributes?.a, ['wikilink']), 'title'],
+    a: [
+      ...withClasses(defaultSchema.attributes?.a, ['wikilink', 'citation-link']),
+      'title',
+      'ariaLabel',
+    ],
+    sup: [...withClasses(defaultSchema.attributes?.sup, ['citation-ref', 'citation-pending'])],
     span: [...withClasses(defaultSchema.attributes?.span, ['wikilink-broken']), 'title'],
   },
   tagNames: [...(defaultSchema.tagNames ?? []), 'span'],

@@ -3,7 +3,6 @@ import type {
   AccessGrantSummary,
   AccessReview,
   AccessReviewSummary,
-  EvidenceItem,
   Evidence,
   ReviewDecision,
 } from '@/lib/api/types'
@@ -17,6 +16,7 @@ import {
 } from '@/lib/schemas/security'
 import { ACCESS_LEVEL_LABELS, ACCESS_REVIEW_CONTROL_REFERENCE, periodEnd } from '@/lib/security'
 import { audit } from '@/mocks/audit'
+import { evidenceItem, refreshControlStatus } from '@/mocks/evidence'
 import { baseFields, touch, userName } from '@/mocks/helpers'
 import { checkVersion, HttpError, json, notFound, paginate, parse } from '@/mocks/http'
 import { assertMember, dueState, nextRef, today, unprocessable } from '@/mocks/privacy'
@@ -70,24 +70,6 @@ function findReview(ctx: OrgCtx, id: string): AccessReview {
   const r = orgReviews(ctx).find((x) => x.id === id || x.ref === id.toUpperCase())
   if (!r) throw notFound('Access review')
   return r
-}
-
-export function evidenceItem(ctx: OrgCtx, e: Evidence): EvidenceItem {
-  const file = e.fileId ? ctx.db.files.find((f) => f.id === e.fileId) : undefined
-  let fileRef: EvidenceItem['file'] = null
-  if (file) {
-    const { orgId: _orgId, ...ref } = file
-    fileRef = ref
-  }
-  return {
-    ...e,
-    collectedByName: e.createdBy ? userName(ctx.db, e.createdBy) : null,
-    file: fileRef,
-    originHref:
-      e.origin?.type === 'access_review'
-        ? `/${ctx.org.slug}/security/access-reviews/${e.origin.id}`
-        : null,
-  }
 }
 
 function summarizeReview(ctx: OrgCtx, r: AccessReview): AccessReviewSummary {
@@ -409,6 +391,7 @@ export const accessRoutes: RouteDef[] = [
           origin: { type: 'access_review', id: r.id, label: reviewLabel(r) },
         }
         ctx.db.evidence.push(evidence)
+        refreshControlStatus(ctx, control.id)
         r.evidenceId = evidence.id
       }
       r.status = 'signed_off'

@@ -253,6 +253,42 @@ for (const scheme of ['light', 'dark'] as const) {
       await expectNoViolations(page, 'change dialog')
     })
 
+    test('evidence pages and dialogs', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen)
+      for (const path of [
+        '/3rdloop/evidence/controls',
+        '/3rdloop/evidence/controls/ctl_a_5_15',
+        '/3rdloop/evidence/connectors',
+        '/3rdloop/evidence/uploads',
+        '/3rdloop/evidence/audit-pack',
+        '/sample-clinic/evidence/controls',
+      ]) {
+        await page.goto(path)
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+        await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
+        await expectNoViolations(page, path)
+      }
+
+      await page.goto('/3rdloop/evidence/audit-pack')
+      await page.getByRole('button', { name: 'Expand all' }).click()
+      await expect(page.getByTestId('pack-policy').first()).toBeVisible()
+      await expectNoViolations(page, 'audit pack, expanded')
+
+      await page.goto('/3rdloop/evidence/controls/ctl_a_8_15')
+      await page.getByRole('button', { name: 'Upload evidence' }).click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'upload evidence dialog')
+      await page.keyboard.press('Escape')
+
+      await page.goto('/3rdloop/evidence/connectors')
+      await page
+        .getByRole('button', { name: /Reconfigure/ })
+        .first()
+        .click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'connector dialog')
+    })
+
     test('read-only views for the approver and auditor', async ({ page }) => {
       await signInAs(page, USERS.michael, '/3rdloop/security/risks')
       await expect(page.getByRole('table').first()).toBeVisible()
@@ -260,6 +296,77 @@ for (const scheme of ['light', 'dark'] as const) {
       await signInAs(page, USERS.auditor, '/3rdloop/security/access-reviews')
       await expect(page.getByRole('table').first()).toBeVisible()
       await expectNoViolations(page, 'auditor reviews')
+      await signInAs(page, USERS.auditor, '/3rdloop/evidence/audit-pack')
+      await expect(page.getByTestId('pack-totals')).toBeVisible()
+      await expectNoViolations(page, 'auditor audit pack')
+    })
+  })
+}
+
+for (const scheme of ['light', 'dark'] as const) {
+  test.describe(`ask and questionnaires, ${scheme} mode`, () => {
+    test.use({ colorScheme: scheme })
+
+    test('ask pages', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen, '/3rdloop/ask')
+      await expect(
+        page.getByRole('heading', { name: 'Ask about your policies and records' }),
+      ).toBeVisible()
+      await expectNoViolations(page, 'ask (empty)')
+      await page.goto('/3rdloop/ask/thr_seed_1')
+      await expect(page.getByTestId('answer')).toHaveCount(2)
+      await expectNoViolations(page, 'ask thread')
+      const box = page.getByLabel('Your question')
+      await box.fill('What is the guest Wi-Fi password at the Cebu office?')
+      await box.press('Enter')
+      await expect(page.getByTestId('answer-not-found')).toBeVisible()
+      await expectNoViolations(page, 'ask not found')
+      await page.goto('/3rdloop/policies/doc_itd_007')
+      await page.getByRole('banner').getByRole('button', { name: 'Ask' }).click()
+      await expect(page.getByRole('dialog', { name: 'Ask' })).toBeVisible()
+      await expectNoViolations(page, 'quick ask')
+    })
+
+    test('starter ask at the cap', async ({ page }) => {
+      await page.request.post('/api/mock/usage', {
+        data: { org: 'sample-clinic', askQuestions: 100 },
+      })
+      await signInAs(page, USERS.clinicStaff, '/sample-clinic/ask')
+      await expect(page.getByTestId('ask-capped')).toBeVisible()
+      await expectNoViolations(page, 'ask capped')
+    })
+
+    test('questionnaire pages', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen, '/3rdloop/questionnaires')
+      await expect(
+        page.getByRole('table', { name: 'Questionnaires' }).locator('tbody tr').first(),
+      ).toBeVisible()
+      await expectNoViolations(page, 'questionnaires')
+      await page.goto('/3rdloop/questionnaires/upload')
+      await expect(page.getByRole('heading', { name: 'Upload a questionnaire' })).toBeVisible()
+      await expectNoViolations(page, 'upload')
+      await page.goto('/3rdloop/questionnaires/qnr_seed_1')
+      const grid = page.getByRole('grid', { name: 'Answers' })
+      await expect(grid).toBeVisible()
+      await expectNoViolations(page, 'review grid')
+      await grid.locator('tbody tr').nth(6).focus()
+      await page.keyboard.press('Enter')
+      await expect(page.getByLabel('Answer to question 7')).toBeFocused()
+      await expectNoViolations(page, 'review grid editing')
+    })
+
+    test('mapping step', async ({ page }) => {
+      await signInAs(page, USERS.jehnsen, '/3rdloop/questionnaires/upload')
+      await page.getByLabel('Name').fill('Annual review')
+      await page.getByLabel('Client').fill('Example Client Inc.')
+      await page.locator('input[type="file"]').setInputFiles({
+        name: 'review.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from('Question,Answer\r\nDo you back up daily?,\r\n'),
+      })
+      await page.getByRole('button', { name: 'Upload and continue' }).click()
+      await expect(page.getByRole('heading', { name: 'Choose the columns' })).toBeVisible()
+      await expectNoViolations(page, 'mapping')
     })
   })
 }

@@ -33,6 +33,10 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
   review_overdue: { label: 'Review overdue', tone: 'bad', mark: 'clock' },
   review_due_soon: { label: 'Review due soon', tone: 'warn', mark: 'clock' },
   pending: { label: 'Pending', tone: 'warn', mark: 'hollow' },
+  edited: { label: 'Edited', tone: 'info', mark: 'dot' },
+  needs_input: { label: 'Needs input', tone: 'bad', mark: 'alert' },
+  mapping: { label: 'Mapping columns', tone: 'neutral', mark: 'hollow' },
+  complete: { label: 'Complete', tone: 'ok', mark: 'check' },
   acknowledged: { label: 'Acknowledged', tone: 'ok', mark: 'check' },
   invited: { label: 'Invited', tone: 'warn', mark: 'hollow' },
   // Privacy (M3)

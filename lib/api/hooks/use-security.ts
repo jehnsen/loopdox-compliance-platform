@@ -10,11 +10,9 @@ import type {
   AccessReviewSummary,
   ChangeInput,
   ChangeSummary,
-  Control,
   CreateAccessReviewRequest,
   DecisionInput,
   DecisionSummary,
-  EvidenceItem,
   ListQuery,
   ListResponse,
   ReviewDecision,
@@ -81,6 +79,7 @@ function useWrite<TVars, TRes>(
       // LinkedRecords on privacy and policy pages read the same relations.
       void qc.invalidateQueries({ queryKey: qk.privacy.all(org) })
       void qc.invalidateQueries({ queryKey: [org, 'controls'] })
+      void qc.invalidateQueries({ queryKey: [org, 'audit-pack'] })
       void qc.invalidateQueries({ queryKey: qk.overview(org) })
       void qc.invalidateQueries({ queryKey: qk.notifications(org) })
       void qc.invalidateQueries({ queryKey: [org, 'audit-events'] })
@@ -144,8 +143,7 @@ export const useAccessReview = (org: string, id: string) =>
 export const useCreateAccessReview = (org: string) =>
   useWrite(
     org,
-    (body: CreateAccessReviewRequest) =>
-      api.post<AccessReviewSummary>(path(org, 'reviews'), body),
+    (body: CreateAccessReviewRequest) => api.post<AccessReviewSummary>(path(org, 'reviews'), body),
     'reviews',
   )
 
@@ -241,8 +239,7 @@ export const useReviewChange = (org: string) =>
 // Risks and decisions
 // ---------------------------------------------------------------------------
 
-export const useRisks = (org: string, query: ListQuery) =>
-  useList<RiskSummary>(org, 'risks', query)
+export const useRisks = (org: string, query: ListQuery) => useList<RiskSummary>(org, 'risks', query)
 
 export const useRisk = (org: string, id: string, fresh = false) =>
   useDetail<RiskSummary>(org, 'risks', id, fresh)
@@ -286,28 +283,3 @@ export const useSupersedeDecision = (org: string, id: string) =>
 
 export const useDeleteDecision = (org: string, id: string) =>
   useWrite(org, () => api.delete<undefined>(path(org, 'decisions', `/${id}`)))
-
-// ---------------------------------------------------------------------------
-// Controls and their evidence (the full Evidence module is M6)
-// ---------------------------------------------------------------------------
-
-export function useControl(org: string, id: string) {
-  return useQuery({
-    queryKey: qk.control(org, id),
-    queryFn: ({ signal }) => api.get<Control>(orgPath(org, `/controls/${encodeURIComponent(id)}`), { signal }),
-    enabled: Boolean(id),
-  })
-}
-
-export function useControlEvidence(org: string, id: string) {
-  return useQuery({
-    queryKey: qk.controlEvidence(org, id),
-    queryFn: ({ signal }) =>
-      api.get<ListResponse<EvidenceItem>>(orgPath(org, `/controls/${encodeURIComponent(id)}/evidence`), {
-        query: { pageSize: 100 },
-        signal,
-      }),
-    enabled: Boolean(id),
-    staleTime: 0,
-  })
-}

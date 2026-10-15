@@ -12,21 +12,36 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 
 /**
- * Drag and drop or browse for one file. Checks size and type before uploading,
- * shows progress, and hands back the uploaded file's metadata.
+ * Drag and drop or browse for one file. Checks size and type first.
+ *
+ * By default it uploads the file at once, shows progress and hands back the uploaded
+ * file's metadata (`onUploaded`). With `onSelect` it only checks and hands back the
+ * file itself, for forms that send the file together with their other fields.
  */
 export function FileDropzone({
   onUploaded,
+  onSelect,
+  selected,
   label = 'Attach a file',
   hint,
   disabled,
   className,
+  accept = ACCEPT_ATTRIBUTE,
+  validate = uploadProblem,
 }: {
-  onUploaded: (file: FileRef) => void
+  onUploaded?: (file: FileRef) => void
+  /** Select-only mode: no upload. `null` means the file was removed. */
+  onSelect?: (file: File | null) => void
+  /** The file chosen so far in select-only mode. */
+  selected?: File | null
   label?: string
   hint?: string
   disabled?: boolean
   className?: string
+  /** File input `accept` attribute (defaults to every supported upload type). */
+  accept?: string
+  /** Returns why a file can't be used, or null (defaults to the general upload rules). */
+  validate?: (file: File) => string | null
 }) {
   const org = useOrgSlug()
   const inputId = useId()
@@ -39,9 +54,14 @@ export function FileDropzone({
   const start = async (file: File | undefined) => {
     if (!file || upload) return
     setError(null)
-    const problem = uploadProblem(file)
+    const problem = validate(file)
     if (problem) {
       setError(problem)
+      return
+    }
+    if (onSelect) {
+      onSelect(file)
+      if (input.current) input.current.value = ''
       return
     }
     abort.current = new AbortController()
@@ -53,7 +73,7 @@ export function FileDropzone({
         (progress) => setUpload({ name: file.name, progress }),
         abort.current.signal,
       )
-      onUploaded(ref)
+      onUploaded?.(ref)
     } catch (e) {
       if (!(isApiError(e) && e.code === 'aborted')) {
         setError(isApiError(e) ? e.message : 'The upload failed. Try again.')
@@ -87,7 +107,26 @@ export function FileDropzone({
           disabled && 'opacity-60',
         )}
       >
-        {upload ? (
+        {selected ? (
+          <div className="flex w-full max-w-sm items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-base">
+              <span className="font-medium">{selected.name}</span>{' '}
+              <span className="text-xs text-muted">{formatBytes(selected.size)}</span>
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={disabled}
+              onClick={() => {
+                setError(null)
+                onSelect?.(null)
+              }}
+            >
+              <XIcon aria-hidden="true" /> Remove
+              <span className="sr-only"> {selected.name}</span>
+            </Button>
+          </div>
+        ) : upload ? (
           <div className="flex w-full max-w-sm flex-col gap-2" aria-live="polite">
             <p className="truncate text-sm">
               Uploading <span className="font-medium">{upload.name}</span>…{' '}
@@ -129,7 +168,8 @@ export function FileDropzone({
           ref={input}
           id={inputId}
           type="file"
-          accept={ACCEPT_ATTRIBUTE}
+          aria-label={label}
+          accept={accept}
           className="sr-only"
           disabled={disabled || Boolean(upload)}
           onChange={(e) => void start(e.target.files?.[0])}

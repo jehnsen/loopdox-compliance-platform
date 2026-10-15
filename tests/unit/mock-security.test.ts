@@ -602,7 +602,7 @@ describe('search and dashboard', () => {
     const { body } = await call<OverviewResponse>(t.admin, 'GET', '/overview')
     expect(body.attention.counts.secret_rotation).toBe(2)
     expect(body.attention.counts.access_review).toBe(1)
-    expect(body.attention.total).toBe(8)
+    expect(body.attention.total).toBe(9)
     const review = body.attention.items.find((i) => i.kind === 'access_review')
     expect(review?.href).toMatch(/\/3rdloop\/security\/access-reviews\/ar_/)
     expect(review?.detail).toMatch(/^6 of 11 decided/)

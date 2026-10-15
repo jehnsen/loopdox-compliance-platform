@@ -10,13 +10,17 @@ This repo is the **frontend only** (Next.js App Router). The FastAPI backend is 
 
 ## Status
 
-| Milestone                                                                                                                              | State   |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| M1 Foundation: shell, auth, mock API, permissions, entitlements                                                                        | ✅ Done |
-| M2 Policies: library, read view, editor, versions, diff, approval workflow, acknowledgements                                           | ✅ Done |
-| M3 Privacy: processing records, PIA wizard, DSRs, incidents with the 72-hour clock and notices, agreements, NPC registration, training | ✅ Done |
-| M4 Overview dashboard, global search and notifications                                                                                 | Next    |
-| M5 Security · M6 Evidence · M7 Ask & Questionnaires · M8 AI Governance · M9 Settings & hardening                                       | Planned |
+| Milestone                                                                                                                                          | State   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| M1 Foundation: shell, auth, mock API, permissions, entitlements                                                                                    | ✅ Done |
+| M2 Policies: library, read view, editor, versions, diff, approval workflow, acknowledgements                                                       | ✅ Done |
+| M3 Privacy: processing records, PIA wizard, DSRs, incidents with the 72-hour clock and notices, agreements, NPC registration, training             | ✅ Done |
+| M4 Overview dashboard, global search and notifications                                                                                             | ✅ Done |
+| M5 Security: systems, access reviews, secrets, changes, risks, decisions                                                                           | ✅ Done |
+| M6 Evidence: controls, uploads, connectors, auditor audit pack                                                                                     | ✅ Done |
+| M7 Ask & Questionnaires: streamed cited answers, threads, sources panel, as-of mode, Quick Ask; questionnaire upload, mapping, review grid, export | ✅ Done |
+| M8 AI Governance                                                                                                                                   | Next    |
+| M9 Settings & hardening                                                                                                                            | Planned |
 
 Modules not built yet already appear in the navigation. They open a placeholder that applies the real permission check and plan gate.
 
@@ -52,17 +56,18 @@ Open http://localhost:3000. In mock mode, the sign-in page lists every seeded us
 
 ## Environment variables
 
-| Variable               | Default                        | Purpose                                                                                      |
-| ---------------------- | ------------------------------ | -------------------------------------------------------------------------------------------- |
-| `API_MODE`             | `mock`                         | `mock`: `/api/v1/*` is served by the in-repo mock. `live`: proxied to FastAPI.               |
-| `API_BASE_URL`         | `http://localhost:8000/api/v1` | FastAPI base URL (live mode only).                                                           |
-| `SESSION_COOKIE_NAME`  | `loopdox_session`              | httpOnly access-token cookie. The refresh token uses the same name with `_refresh` appended. |
-| `NEXT_PUBLIC_APP_NAME` | `LoopDox`                      | Product name. The UI reads it from one constant (`lib/config.ts`).                           |
-| `MOCK_JWT_SECRET`      | dev value                      | Mock mode: signs mock JWTs.                                                                  |
-| `MOCK_LATENCY_MS`      | `150-400`                      | Mock mode: simulated latency range, or `0`.                                                  |
-| `MOCK_DB_FILE`         | `.mock-db.json`                | Mock mode: where dev data is persisted.                                                      |
-| `MOCK_PERSIST`         | on                             | Set to `0` to keep mock data in memory only. Always in memory in production builds.          |
-| `MOCK_ALLOW_RESET`     | off                            | Set to `1` to enable `POST /api/mock/reset` (Playwright does this).                          |
+| Variable               | Default                        | Purpose                                                                                                      |
+| ---------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `API_MODE`             | `mock`                         | `mock`: `/api/v1/*` is served by the in-repo mock. `live`: proxied to FastAPI.                               |
+| `API_BASE_URL`         | `http://localhost:8000/api/v1` | FastAPI base URL (live mode only).                                                                           |
+| `SESSION_COOKIE_NAME`  | `loopdox_session`              | httpOnly access-token cookie. The refresh token uses the same name with `_refresh` appended.                 |
+| `NEXT_PUBLIC_APP_NAME` | `LoopDox`                      | Product name. The UI reads it from one constant (`lib/config.ts`).                                           |
+| `MOCK_JWT_SECRET`      | dev value                      | Mock mode: signs mock JWTs.                                                                                  |
+| `MOCK_LATENCY_MS`      | `150-400`                      | Mock mode: simulated latency range, or `0`.                                                                  |
+| `MOCK_DB_FILE`         | `.mock-db.json`                | Mock mode: where dev data is persisted.                                                                      |
+| `MOCK_PERSIST`         | on                             | Set to `0` to keep mock data in memory only. Always in memory in production builds.                          |
+| `MOCK_ALLOW_RESET`     | off                            | Set to `1` to enable the test-only `POST /api/mock/reset` and `POST /api/mock/usage` (Playwright does this). |
+| `MOCK_STREAM_DELAY_MS` | `30`                           | Mock mode: delay between streamed Ask tokens, or `0`.                                                        |
 
 ## Mock mode
 
@@ -125,6 +130,23 @@ Signed in as Jehnsen Enrique (admin and DPO) unless noted. Privacy data lives in
 | `/sample-clinic/privacy/registration` as Dra. Liza Santos    | Registration renewal due; on Starter there's no Systems group in linked records                                                        |
 | As External Auditor                                          | Only finalised privacy records: approved processing records, signed-off PIAs, closed DSRs and incidents                                |
 
+### Ask and questionnaires to try
+
+Ask only answers from approved policy text and the records you can see, and every line links to its source. The mock engine is in `mocks/ask/`; it quotes passages rather than writing new text.
+
+| Where                                             | What you'll see                                                                                                                                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/3rdloop/ask` as Jehnsen Enrique                 | Ask "What does the Access Control Policy require for MFA?": the answer streams in, cites ITD-007 **v2** (v3 is still in review) and the sources panel lists it. Click the **1** to land on the highlighted section. |
+| Same page                                         | "Which systems hold personal data?" answers from the registers; pin **Impact** and ask "What is affected if we change ITD-007?"                                                                                     |
+| Same page, **As of…**                             | Pick a date before ITD-007 v2 was approved: the answer quotes v1                                                                                                                                                    |
+| Same page                                         | Ask something no policy covers ("guest Wi-Fi password"): "I couldn't find this in your approved documents", with suggestions                                                                                        |
+| `/3rdloop/policies/doc_itd_007` → top bar **Ask** | Quick Ask suggests "What does this policy require for MFA?"                                                                                                                                                         |
+| ⌘K → type a question → **Ask: …**                 | Opens Quick Ask with the answer                                                                                                                                                                                     |
+| `/sample-clinic/ask` as Clinic Front Desk         | Starter meter ("38 of 100 questions this month"); Records and Impact locked. At 100 the composer becomes the upgrade card                                                                                           |
+| `/3rdloop/questionnaires/qnr_seed_1`              | A client's Excel assessment with 4 of 12 answers approved and 2 needing input. ↑/↓, **Enter** to edit, **⌘ Enter** to approve; **Export XLSX**                                                                      |
+| `/3rdloop/questionnaires/upload`                  | Upload your own CSV or XLSX, check the suggested columns, **Draft answers**                                                                                                                                         |
+| `/sample-clinic/questionnaires`                   | Upgrade card (Pro and above)                                                                                                                                                                                        |
+
 ## Auth (backend-for-frontend)
 
 - `/api/auth/login`, `/logout`, `/forgot-password`, `/reset-password` and `/invites/:token[/accept]` exchange credentials with the backend and set **httpOnly, SameSite=Lax** cookies (Secure in production). Tokens never reach browser JavaScript.
@@ -149,11 +171,11 @@ app/                      routes (App Router)
   (app)/[org]/            app shell and every module, path-based tenancy
   api/auth/[...action]/   BFF auth endpoints
   api/v1/[...path]/       BFF proxy → mock or FastAPI
-  api/mock/reset/         test-only reseed (MOCK_ALLOW_RESET=1)
+  api/mock/reset/, usage/ test-only reseed and Ask usage setter (MOCK_ALLOW_RESET=1)
 components/ui/            shadcn-style primitives, restyled to our tokens
 components/shell/         AppShell, Sidebar, TopBar, OrgSwitcher, CommandPalette, NotificationsBell, UserMenu, IdleTimeout
 components/               shared blocks: PageHeader, MetadataStrip, StatusPill, chips, states, UpgradeCard, ConfirmDialog, Gate…
-features/<module>/        module components, hooks and forms (policies/ in M2, privacy/ in M3)
+features/<module>/        module components, hooks and forms (policies/ M2, privacy/ M3, security/ M5, evidence/ M6, ask/ and questionnaires/ M7)
 components/data-table/    DataTable (server paging/sort/filters in the URL), FacetFilter
 components/markdown/      MarkdownView (sanitised, [[ID]] links), MarkdownEditor (CodeMirror, lazy)
 components/form/          FormField, PeoplePicker, RecordPicker, TagInput, DateField (timezone-aware), ScoreInput
@@ -165,6 +187,8 @@ lib/schemas/              zod schemas shared by forms and the mock API
 lib/utils/                dates (timezone-aware), format, ids, list params, hooks
 lib/markdown/             wiki-link remark plugin, TOC extraction, sanitize schema
 lib/diff.ts               line/word diff used by DiffView
+lib/api/sse.ts            Server-Sent Events reader for Ask streams
+lib/markdown/             … plus sections.ts (policy passages with heading anchors) and citations.ts ([n] superscripts)
 lib/countdown.ts          72-hour breach clock rules (thresholds, text), unit-tested
 lib/links.ts              which records link to which, and which side stores the link
 lib/privacy.ts, risk.ts   privacy labels and due-date rules; 5×5 risk scoring
@@ -173,6 +197,8 @@ lib/i18n/en.ts            UI strings
 lib/entitlements.ts       plan features
 lib/nav.ts                sidebar and command-palette navigation
 mocks/                    mock API: dispatch, router, handlers/, seed/, store.ts, records.ts (link registry), notices.ts (notice drafts)
+mocks/ask/                Ask engine: policy retrieval (policies.ts), routing, records and impact (engine.ts)
+mocks/tabular.ts          CSV and XLSX read/write for questionnaires (mock only)
 proxy.ts                  auth redirect, token refresh, CSP nonce
 docs/                     spec, API contract, decisions
 tests/unit/               Vitest

@@ -1,41 +1,42 @@
 'use client'
 
 import Link from 'next/link'
-import { useControl, useControlEvidence } from '@/lib/api/hooks/use-security'
-import { useDocumentLookup } from '@/lib/api/hooks/use-documents'
-import { useMembers } from '@/lib/api/hooks/use-members'
+import { useState } from 'react'
+import { UploadIcon } from 'lucide-react'
 import { isApiError } from '@/lib/api/client'
+import { useControl, useControlEvidence } from '@/lib/api/hooks/use-evidence'
+import { useDocumentLookup } from '@/lib/api/hooks/use-documents'
+import { useCan } from '@/lib/auth/can'
 import { PERMISSION_LABELS } from '@/lib/auth/permissions'
+import { FREQUENCY_LABELS } from '@/lib/evidence'
 import { FRAMEWORK_LABELS } from '@/lib/overview'
 import { useOrgSlug } from '@/components/providers/session-provider'
 import { IdChip } from '@/components/chips'
+import { DateText } from '@/components/date-text'
 import { EvidenceTimeline } from '@/components/evidence-timeline'
 import { MetadataStrip } from '@/components/metadata-strip'
 import { PageHeader } from '@/components/page-header'
 import { ErrorState, ForbiddenState, NotFoundState } from '@/components/states'
 import { StatusPill } from '@/components/status-pill'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { evidencePaths } from '@/features/evidence/shared'
+import { RunControlConnectors } from '@/features/evidence/run-connector'
+import { UploadEvidenceDialog } from '@/features/evidence/upload-evidence-dialog'
 import { policyPaths } from '@/features/policies/paths'
 
-const FREQUENCY: Record<string, string> = {
-  continuous: 'Continuous',
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  annually: 'Annually',
-}
-
 /**
- * A control with its linked policies and evidence timeline. M5 builds this page so a
- * signed-off access review can be seen on the control; M6 adds uploads, connectors
- * and the controls list around it.
+ * A control with its linked policies and evidence timeline. People who can edit
+ * evidence upload files and run connectors here; everyone else reads.
  */
 export function ControlPage({ id }: { id: string }) {
   const org = useOrgSlug()
+  const can = useCan()
   const control = useControl(org, id)
   const evidence = useControlEvidence(org, id)
   const docs = useDocumentLookup(org)
-  const members = useMembers(org)
+  const [uploading, setUploading] = useState(false)
 
   if (control.isLoading) {
     return (
@@ -58,7 +59,7 @@ export function ControlPage({ id }: { id: string }) {
   }
   const c = control.data
   const linked = (docs.data ?? []).filter((d) => c.documentIds.includes(d.id))
-  const owner = members.data?.find((m) => m.userId === c.owner)?.name ?? null
+  const canEdit = can('evidence.edit')
 
   return (
     <div className="flex flex-col gap-4">
@@ -69,19 +70,43 @@ export function ControlPage({ id }: { id: string }) {
         description={FRAMEWORK_LABELS[c.framework]}
         breadcrumbs={[
           { label: 'Evidence' },
-          { label: 'Controls', href: `/${org}/evidence/controls` },
+          { label: 'Controls', href: evidencePaths.controls(org) },
           { label: c.reference },
         ]}
+        actions={
+          canEdit ? (
+            <>
+              <RunControlConnectors connectors={c.connectors} />
+              <Button variant="primary" onClick={() => setUploading(true)}>
+                <UploadIcon aria-hidden="true" /> Upload evidence
+              </Button>
+            </>
+          ) : null
+        }
         className="pb-0"
       />
+      {uploading ? (
+        <UploadEvidenceDialog
+          controlId={c.id}
+          controlLabel={`${c.reference} ${c.title}`}
+          onClose={() => setUploading(false)}
+        />
+      ) : null}
       <MetadataStrip
         items={[
           { label: 'Framework', value: FRAMEWORK_LABELS[c.framework] },
           { label: 'Reference', value: c.reference },
-          { label: 'Owner', value: owner },
-          { label: 'Evidence', value: FREQUENCY[c.evidenceFrequency] ?? c.evidenceFrequency },
+          { label: 'Owner', value: c.ownerName },
+          {
+            label: 'Evidence due',
+            value: FREQUENCY_LABELS[c.evidenceFrequency] ?? c.evidenceFrequency,
+          },
           { label: 'Status', value: c.status.replace(/_/g, ' ') },
-          { label: 'Policies', value: String(c.documentIds.length) },
+          { label: 'Evidence items', value: String(c.evidenceCount) },
+          {
+            label: 'Last evidence',
+            value: c.lastEvidenceAt ? <DateText value={c.lastEvidenceAt} relative /> : null,
+          },
         ]}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">

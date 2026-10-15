@@ -2,15 +2,17 @@ import { formatInTimeZone } from 'date-fns-tz'
 import type { AuditEvent, Notification } from '@/lib/api/types'
 import { draftNotices } from '@/mocks/notices'
 import type { MockDB } from '@/mocks/store'
+import { seedAsk } from '@/mocks/seed/ask'
 import { seedControls } from '@/mocks/seed/controls'
 import { seedDocuments } from '@/mocks/seed/documents'
+import { seedEvidence } from '@/mocks/seed/evidence'
 import { seedPrivacy } from '@/mocks/seed/privacy'
 import { seedSecurity } from '@/mocks/seed/security'
 import { seedSystems } from '@/mocks/seed/systems'
 import { seedInvites, seedMemberships, seedOrgs, seedUsers } from '@/mocks/seed/tenants'
 
 /** Bump when seed data changes shape; a persisted .mock-db.json with an older version is reseeded. */
-export const SEED_VERSION = 4
+export const SEED_VERSION = 6
 
 const HOUR = 3_600_000
 
@@ -114,6 +116,7 @@ export function seedDatabase(now: Date): MockDB {
   const privacy = seedPrivacy(now)
   const systems = seedSystems(now)
   const security = seedSecurity(now, systems, controls)
+  const evidence = seedEvidence(now, controls)
 
   const db: MockDB = {
     meta: { seedVersion: SEED_VERSION, seededAt: now.toISOString() },
@@ -140,8 +143,9 @@ export function seedDatabase(now: Date): MockDB {
     secrets: security.secrets,
     changes: security.changes,
     decisions: security.decisions,
-    evidence: security.evidence,
-    files: privacy.files,
+    evidence: [...security.evidence, ...evidence.evidence],
+    connectors: evidence.connectors,
+    files: [...privacy.files, ...evidence.files],
     processingActivities: privacy.processingActivities,
     pias: privacy.pias,
     dsrs: privacy.dsrs,
@@ -149,6 +153,9 @@ export function seedDatabase(now: Date): MockDB {
     agreements: privacy.agreements,
     registrations: privacy.registrations,
     trainingRecords: privacy.trainingRecords,
+    askThreads: [],
+    askMessages: [],
+    questionnaires: [],
   }
 
   // The closed breach's notices were drafted from its linked records and signed off by the approver.
@@ -164,5 +171,7 @@ export function seedDatabase(now: Date): MockDB {
       signedOffAt: new Date(discovered + 46 * HOUR).toISOString(),
     }
   }
+  // Drafted from the approved policies above, so it runs last.
+  Object.assign(db, seedAsk(db, now))
   return db
 }

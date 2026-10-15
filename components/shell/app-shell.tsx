@@ -17,6 +17,7 @@ import { Brand, Sidebar, SidebarNav } from '@/components/shell/sidebar'
 import type { ThemePref } from '@/components/shell/theme'
 import { UserMenu } from '@/components/shell/user-menu'
 import { Button } from '@/components/ui/button'
+import { QuickAskProvider, useQuickAsk } from '@/features/ask/quick-ask'
 import { Kbd } from '@/components/ui/kbd'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
@@ -34,6 +35,7 @@ function TopBar({
   const { org, roles, tier } = useSession()
   const canReport = hasFeature(tier, 'privacy') && can({ roles }, 'incidents.report')
   const canAsk = hasFeature(tier, 'ask.policy') && can({ roles }, 'ask.use')
+  const quickAsk = useQuickAsk()
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-line bg-surface/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:gap-2 lg:px-4">
       <Button
@@ -73,11 +75,16 @@ function TopBar({
           </Button>
         ) : null}
         {canAsk ? (
-          <Button asChild variant="secondary" size="md" className="px-2 sm:px-3">
-            <Link href={`/${org.slug}/ask`} aria-label={en.shell.ask}>
-              <MessageSquareTextIcon aria-hidden="true" />
-              <span className="hidden sm:inline">{en.shell.ask}</span>
-            </Link>
+          <Button
+            variant="secondary"
+            size="md"
+            className="px-2 sm:px-3"
+            onClick={() => quickAsk.open()}
+            aria-label={en.shell.ask}
+            aria-haspopup="dialog"
+          >
+            <MessageSquareTextIcon aria-hidden="true" />
+            <span className="hidden sm:inline">{en.shell.ask}</span>
           </Button>
         ) : null}
         <NotificationsBell />
@@ -119,47 +126,49 @@ export function AppShell({
   }
 
   return (
-    <div
-      className={
-        collapsed ? 'flex min-h-dvh [--sidebar-w:3.5rem]' : 'flex min-h-dvh [--sidebar-w:15rem]'
-      }
-    >
-      <a
-        href="#main"
-        className="sr-only z-50 rounded-md bg-accent px-3 py-2 text-accent-fg focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+    <QuickAskProvider>
+      <div
+        className={
+          collapsed ? 'flex min-h-dvh [--sidebar-w:3.5rem]' : 'flex min-h-dvh [--sidebar-w:15rem]'
+        }
       >
-        {en.shell.skipToContent}
-      </a>
-      <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
-      <Sheet open={navOpen} onOpenChange={setNavOpen}>
-        <SheetContent side="left" className="lg:hidden">
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <div className="flex h-14 items-center border-b border-line px-4">
-            <Brand />
-          </div>
-          <div className="flex-1 overflow-y-auto px-3 py-4">
-            <SidebarNav onNavigate={() => setNavOpen(false)} />
-          </div>
-        </SheetContent>
-      </Sheet>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar
-          onOpenPalette={() => setPaletteOpen(true)}
-          onOpenNav={() => setNavOpen(true)}
-          theme={theme}
-        />
-        <SampleDataBanner />
-        <main
-          id="main"
-          tabIndex={-1}
-          className="mx-auto w-full max-w-content min-w-0 flex-1 px-4 py-6 outline-none lg:px-8"
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-md bg-accent px-3 py-2 text-accent-fg focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
         >
-          {children}
-        </main>
+          {en.shell.skipToContent}
+        </a>
+        <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
+        <Sheet open={navOpen} onOpenChange={setNavOpen}>
+          <SheetContent side="left" className="lg:hidden">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <div className="flex h-14 items-center border-b border-line px-4">
+              <Brand />
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+              <SidebarNav onNavigate={() => setNavOpen(false)} />
+            </div>
+          </SheetContent>
+        </Sheet>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar
+            onOpenPalette={() => setPaletteOpen(true)}
+            onOpenNav={() => setNavOpen(true)}
+            theme={theme}
+          />
+          <SampleDataBanner />
+          <main
+            id="main"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-content min-w-0 flex-1 px-4 py-6 outline-none lg:px-8"
+          >
+            {children}
+          </main>
+        </div>
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <IdleTimeout />
       </div>
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <IdleTimeout />
-    </div>
+    </QuickAskProvider>
   )
 }
 

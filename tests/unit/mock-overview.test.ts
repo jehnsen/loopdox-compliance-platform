@@ -75,11 +75,12 @@ function apiPathOf(href: string): string {
   if (a === 'privacy' && b === 'incidents') return `/incidents/${c}`
   if (a === 'privacy' && b === 'requests') return `/dsrs/${c}`
   if (a === 'privacy' && b === 'agreements') return `/agreements/${c}`
+  if (a === 'evidence' && b === 'connectors') return '/connectors/hostinger'
   throw new Error(`No API path known for ${href}`)
 }
 
 describe('overview: Needs attention matches the seed data', () => {
-  it('lists exactly the eight seeded items, ranked by risk class', async () => {
+  it('lists exactly the nine seeded items, ranked by risk class', async () => {
     const year = todayInTz('Asia/Manila', NOW).slice(0, 4)
     const { status, body } = await overview(t.admin)
     expect(status).toBe(200)
@@ -91,16 +92,19 @@ describe('overview: Needs attention matches the seed data', () => {
       ['secret_rotation', 'SCR-005'],
       ['secret_rotation', 'SCR-002'],
       ['access_review', 'AR-002'],
+      // The failing Hostinger connector has no record ID.
+      ['connector_failing', null],
       ['review_overdue', 'ITD-013'],
       ['agreement_renewal', 'AGR-001'],
     ])
-    expect(body.attention.total).toBe(8)
+    expect(body.attention.total).toBe(9)
     expect(body.attention.counts).toEqual({
       breach_deadline: 1,
       dsr_due: 1,
       policy_approval: 1,
       secret_rotation: 2,
       access_review: 1,
+      connector_failing: 1,
       review_overdue: 1,
       agreement_renewal: 1,
     })
@@ -138,6 +142,8 @@ describe('overview: Needs attention matches the seed data', () => {
       secret_rotation: db.secrets.filter((x) => x.orgId === org && x.nextDueAt < today).length,
       access_review: db.accessReviews.filter((r) => r.orgId === org && r.status === 'in_progress')
         .length,
+      connector_failing: db.connectors.filter((c) => c.orgId === org && c.status === 'error')
+        .length,
     }
     return overview(t.admin).then(({ body }) => {
       expect(body.attention.counts).toEqual(
@@ -156,7 +162,7 @@ describe('overview: Needs attention matches the seed data', () => {
         apiPathOf(item.href),
       )
       expect(record.status, item.href).toBe(200)
-      expect(record.body.ref ?? record.body.docId, item.href).toBe(item.ref)
+      expect(record.body.ref ?? record.body.docId ?? null, item.href).toBe(item.ref)
     }
   })
 
@@ -200,7 +206,7 @@ describe('overview: Needs attention matches the seed data', () => {
     expect(approved.status).toBe(200)
     const { body } = await overview(t.admin)
     expect(body.attention.counts.policy_approval).toBeUndefined()
-    expect(body.attention.total).toBe(7)
+    expect(body.attention.total).toBe(8)
   })
 
   it('stops counting a breach once notification is ruled out', async () => {

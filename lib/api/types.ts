@@ -527,7 +527,7 @@ export interface AcknowledgementStatus {
 }
 
 // ---------------------------------------------------------------------------
-// Controls (full Evidence module arrives in M6)
+// Controls
 // ---------------------------------------------------------------------------
 
 export type Framework = 'ISO27001:2022' | 'DPA' | 'NPC' | 'internal'
@@ -543,6 +543,16 @@ export interface Control extends BaseEntity {
   owner: string
   evidenceFrequency: 'continuous' | 'monthly' | 'quarterly' | 'annually'
   status: ControlStatus
+}
+
+/** A control with what the Evidence pages need beside it (M6). */
+export interface ControlSummary extends Control {
+  ownerName: string
+  evidenceCount: number
+  /** When the newest evidence was collected. null when there is none. */
+  lastEvidenceAt: ISODateTime | null
+  /** Connectors whose checks feed this control, so the page can offer "Run … now". */
+  connectors: { id: string; provider: ConnectorProvider; name: string; status: ConnectorStatus }[]
 }
 
 // ---------------------------------------------------------------------------
@@ -1397,7 +1407,7 @@ export interface DecisionInput {
 }
 
 // ---------------------------------------------------------------------------
-// Evidence (items arrive from security in M5; the Evidence module is M6)
+// Evidence
 // ---------------------------------------------------------------------------
 
 export type EvidenceSource = 'connector' | 'upload' | 'manual'
@@ -1407,6 +1417,8 @@ export interface Evidence extends BaseEntity {
   controlId: string
   source: EvidenceSource
   connectorId: string | null
+  /** The connector check that produced this item (connector evidence only). */
+  checkId?: string | null
   collectedAt: ISODateTime
   result: EvidenceResult
   summary: string
@@ -1416,8 +1428,294 @@ export interface Evidence extends BaseEntity {
 }
 
 export interface EvidenceItem extends Evidence {
+  controlReference: string
+  controlTitle: string
   collectedByName: string | null
   file: FileRef | null
+  /** "GitHub", for connector evidence. */
+  connectorName: string | null
   /** App path of the origin record. */
   originHref: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Connectors (M6)
+// ---------------------------------------------------------------------------
+
+export type ConnectorProvider = 'github' | 'azure' | 'google_workspace' | 'hostinger'
+export type ConnectorStatus = 'connected' | 'error' | 'disconnected'
+
+export interface ConnectorCheck {
+  /** Stable key from the provider catalogue, e.g. "github.branch_protection". */
+  id: string
+  name: string
+  controlId: string
+  controlReference: string
+  /** null until the check has run. */
+  lastResult: 'pass' | 'fail' | null
+  detail: string | null
+  checkedAt: ISODateTime | null
+}
+
+export interface ConnectorError {
+  message: string
+  /** What to do about it, in plain words. */
+  fixHint: string
+  at: ISODateTime
+}
+
+export interface Connector extends BaseEntity {
+  provider: ConnectorProvider
+  status: ConnectorStatus
+  /** The account, organisation or tenant it is connected to. Never a credential. */
+  account: string | null
+  connectedAt: ISODateTime | null
+  lastRunAt: ISODateTime | null
+  lastError: ConnectorError | null
+  checks: ConnectorCheck[]
+}
+
+/** PATCH /connectors/:id */
+export interface ConnectorUpdate {
+  ifVersion: number
+  status: 'connected' | 'disconnected'
+  /** Required when connecting or reconfiguring. */
+  account?: string
+}
+
+/** POST /connectors/:id/run */
+export interface ConnectorRunResult {
+  connector: Connector
+  /** false when the run couldn't reach the provider; the connector's lastError says why. */
+  ok: boolean
+  evidence: EvidenceItem[]
+}
+
+/** POST /evidence (multipart fields, besides the file). */
+export interface EvidenceUploadFields {
+  controlId: string
+  summary: string
+  result: EvidenceResult
+  /** "2026-10-14". Defaults to today; the future is refused. */
+  collectedOn?: ISODate
+}
+
+// ---------------------------------------------------------------------------
+// Audit pack (M6)
+// ---------------------------------------------------------------------------
+
+export interface AuditPackPolicy {
+  id: string
+  docId: string
+  title: string
+  /** The approved version on record. */
+  version: number
+  approvedAt: ISODateTime | null
+  approvedByName: string | null
+  effectiveDate: ISODate | null
+  href: string
+}
+
+export interface AuditPackControl {
+  control: Control
+  /** Status judged from the evidence inside the period. */
+  periodStatus: ControlStatus
+  policies: AuditPackPolicy[]
+  evidence: EvidenceItem[]
+}
+
+export interface AuditPack {
+  /** null = no bound on that side. */
+  from: ISODate | null
+  to: ISODate | null
+  generatedAt: ISODateTime
+  totals: {
+    controls: number
+    passing: number
+    failing: number
+    no_evidence: number
+    evidence: number
+  }
+  controls: AuditPackControl[]
+}
+
+// ---------------------------------------------------------------------------
+// Ask (M7)
+// ---------------------------------------------------------------------------
+
+/** policy: approved policy text · records: the registers · impact: what a change touches. */
+export type AskRoute = 'policy' | 'records' | 'impact'
+
+export type CitationKind = 'policy_section' | 'record' | 'evidence'
+
+export interface Citation {
+  /** 1-based number shown as the superscript [n] in the answer. */
+  n: number
+  kind: CitationKind
+  /** "ITD-007 Access Control Policy › 3.2 Authentication" or "PA-002 Payroll". */
+  label: string
+  /** App path. Policy sections end in #heading-id. */
+  href: string
+  docId?: string
+  /** Policy version quoted. */
+  version?: number
+  /** Heading anchor in the policy. */
+  sectionId?: string
+  /** The passage the answer relied on. Plain text. */
+  excerpt: string | null
+}
+
+export interface AskFeedback {
+  rating: 'up' | 'down'
+  note: string | null
+  at: ISODateTime
+}
+
+export interface AskMessage {
+  id: string
+  threadId: string
+  role: 'user' | 'assistant'
+  /** Assistant answers carry [n] markers that refer to `citations`. */
+  content: string
+  citations: Citation[]
+  route: AskRoute | null
+  /** History mode date the answer was given for. */
+  asOf: ISODate | null
+  /** False when nothing in the sources supported an answer ("couldn't find"). */
+  grounded: boolean
+  /** Follow-up questions offered with an ungrounded answer. */
+  suggestions: string[]
+  feedback: AskFeedback | null
+  createdAt: ISODateTime
+}
+
+export interface AskThread {
+  id: string
+  orgId: string
+  userId: string
+  title: string
+  createdAt: ISODateTime
+  updatedAt: ISODateTime
+  messageCount: number
+}
+
+export interface AskThreadDetail extends AskThread {
+  messages: AskMessage[]
+}
+
+/** The page a Quick Ask was opened from. Answers favour that record. */
+export interface AskContext {
+  type: RecordType
+  id: string
+}
+
+export interface AskRequest {
+  question: string
+  /** Continue a thread; omit to start one. */
+  threadId?: string | null
+  /** Pinned route; omit for automatic routing. */
+  route?: AskRoute | null
+  /** History mode: answer from the policy versions in force on this date. */
+  asOf?: ISODate | null
+  context?: AskContext | null
+}
+
+/** Server-Sent Events from POST /orgs/:org/ask, in order. */
+export type AskStreamEvent =
+  | { event: 'route'; data: { route: AskRoute } }
+  | { event: 'citation'; data: Citation }
+  | { event: 'token'; data: { text: string } }
+  | {
+      event: 'done'
+      data: {
+        messageId: string
+        threadId: string
+        userMessageId: string
+        grounded: boolean
+        suggestions: string[]
+        usage: Usage['askQuestions']
+      }
+    }
+  | { event: 'error'; data: { code: ApiErrorCode; message: string } }
+
+export interface AskFeedbackRequest {
+  rating: 'up' | 'down'
+  note?: string
+}
+
+// ---------------------------------------------------------------------------
+// Questionnaires (M7)
+// ---------------------------------------------------------------------------
+
+export type QuestionnaireFormat = 'csv' | 'xlsx'
+export type QuestionnaireRowStatus = 'draft' | 'edited' | 'approved' | 'needs_input'
+/** mapping: waiting for the column mapping · in_review: answers being reviewed · complete: every row approved. */
+export type QuestionnaireStatus = 'mapping' | 'in_review' | 'complete'
+
+export interface QuestionnaireRow {
+  id: string
+  /** Concurrency counter for this row; row updates send `ifVersion`. */
+  version: number
+  /** Row number in the original file (1-based, after the header). */
+  index: number
+  question: string
+  /** Markdown-lite. Empty when nothing in the policies answered it. */
+  draftAnswer: string
+  citations: Citation[]
+  status: QuestionnaireRowStatus
+  /** Last person to edit or approve the row. */
+  editor: string | null
+  editorName: string | null
+  updatedAt: ISODateTime
+}
+
+export interface QuestionnaireMapping {
+  /** Column index (0-based) holding the questions. */
+  questionColumn: number
+  /** Column index for answers; null appends a new "Answer" column on export. */
+  answerColumn: number | null
+}
+
+export interface QuestionnaireProgress {
+  total: number
+  approved: number
+  edited: number
+  draft: number
+  needsInput: number
+}
+
+export interface QuestionnaireSummary extends BaseEntity {
+  name: string
+  client: string
+  fileName: string
+  format: QuestionnaireFormat
+  uploadedAt: ISODateTime
+  uploadedBy: string
+  uploadedByName: string
+  status: QuestionnaireStatus
+  progress: QuestionnaireProgress
+}
+
+export interface Questionnaire extends QuestionnaireSummary {
+  /** Header row of the file. */
+  columns: string[]
+  /** First rows under the header, for the mapping step. */
+  preview: string[][]
+  /** Mapping suggested from the column names (mapping step). */
+  suggestedMapping: QuestionnaireMapping | null
+  mapping: QuestionnaireMapping | null
+  /** Empty until mapped. */
+  rows: QuestionnaireRow[]
+}
+
+export interface QuestionnaireRowUpdate {
+  ifVersion: number
+  draftAnswer?: string
+  status?: QuestionnaireRowStatus
+}
+
+/** PATCH /questionnaires/:id/rows/:rowId: the row, plus the questionnaire's new status and progress. */
+export interface QuestionnaireRowResult extends QuestionnaireRow {
+  questionnaireStatus: QuestionnaireStatus
+  progress: QuestionnaireProgress
 }

@@ -7,7 +7,7 @@ export interface TocEntry {
 }
 
 /** Plain text of a heading line, as rehype-slug will see it after rendering. */
-function headingText(raw: string): string {
+export function headingText(raw: string): string {
   return raw
     .replace(/\s+#+\s*$/, '') // closing hashes
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // links and images

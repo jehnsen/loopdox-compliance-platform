@@ -16,6 +16,9 @@ export async function resetMockDb(page: Page): Promise<void> {
 
 /** Signs in through the mock-mode "Sign in as…" list (signing out any current user first). */
 export async function signInAs(page: Page, email: string, next?: string): Promise<void> {
+  // Leave the current page first: once cookies are cleared, its pending requests get a 401
+  // and redirect to /login, which would abort the navigation below.
+  await page.goto('about:blank')
   await page.context().clearCookies()
   await page.goto(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
   await page.getByTestId(`sign-in-as-${email}`).click()

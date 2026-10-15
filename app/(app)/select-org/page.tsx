@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ArrowRightIcon } from 'lucide-react'
 import { ROLE_LABELS } from '@/lib/auth/permissions'
 import { TIER_LABELS } from '@/lib/entitlements'
+import { landingPath } from '@/lib/nav'
 import { APP_NAME } from '@/lib/config'
 import { getMe } from '@/lib/server/session'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: 'Choose an organisation' }
 export default async function SelectOrgPage() {
   const me = await getMe(null)
   const only = me.memberships.length === 1 ? me.memberships[0] : undefined
-  if (only) redirect(`/${only.org.slug}`)
+  if (only) redirect(landingPath(only.org.slug, only.roles, only.org.tier))
 
   return (
     <main id="main" className="flex min-h-dvh items-center justify-center px-4 py-10">
@@ -35,7 +36,7 @@ export default async function SelectOrgPage() {
               {me.memberships.map((m) => (
                 <li key={m.org.id}>
                   <Link
-                    href={`/${m.org.slug}`}
+                    href={landingPath(m.org.slug, m.roles, m.org.tier)}
                     className="flex items-center gap-3 rounded-md border border-line px-3 py-2.5 hover:bg-surface-2"
                   >
                     <span className="flex min-w-0 flex-1 flex-col">

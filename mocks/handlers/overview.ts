@@ -10,6 +10,7 @@ import type {
 } from '@/lib/api/types'
 import { isAuditorOnly } from '@/lib/auth/permissions'
 import { hasFeature } from '@/lib/entitlements'
+import { PROVIDERS } from '@/lib/evidence'
 import { recordHref } from '@/lib/links'
 import { ATTENTION_ORDER, dueInPhrase } from '@/lib/overview'
 import { DSR_DUE_SOON_DAYS, DSR_TYPE_LABELS, RENEWAL_LEAD_DAYS } from '@/lib/privacy'
@@ -235,6 +236,30 @@ attentionSources.push((ctx) => {
           badge: r.reviewer === ctx.user.id ? 'You’re the reviewer' : null,
           deadline: null,
           href: `/${ctx.org.slug}/security/access-reviews/${r.id}`,
+        },
+      }
+    })
+})
+
+// Connectors that can't reach their provider: evidence stops being collected until someone fixes them.
+attentionSources.push((ctx) => {
+  if (!hasFeature(ctx.org.tier, 'evidence') || !ctx.can('evidence.edit')) return []
+  return inOrg(ctx, ctx.db.connectors)
+    .filter((c) => c.status === 'error' && c.lastError)
+    .map((c) => {
+      const failedAt = c.lastError?.at ?? c.updatedAt
+      return {
+        urgency: Date.parse(failedAt),
+        item: {
+          id: `connector_failing:${c.id}`,
+          kind: 'connector_failing' as const,
+          tone: 'bad' as const,
+          ref: null,
+          title: `${PROVIDERS[c.provider].name} connector`,
+          detail: c.lastError?.message ?? 'The last run failed',
+          badge: null,
+          deadline: null,
+          href: `/${ctx.org.slug}/evidence/connectors`,
         },
       }
     })

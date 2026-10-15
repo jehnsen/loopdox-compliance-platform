@@ -2,7 +2,7 @@
 
 The frontend defines this contract and the FastAPI backend implements it. TypeScript types for every request and response are in [`lib/api/types.ts`](../lib/api/types.ts), which is the source of truth. The in-repo mock API (`mocks/`) implements the same contract and is the reference behaviour.
 
-> **Status:** covers the endpoints the frontend uses up to **M3 (Privacy)**. Each milestone adds its endpoints here.
+> **Status:** covers the endpoints the frontend uses up to **M7 (Ask and Questionnaires)**. Each milestone adds its endpoints here.
 
 ---
 
@@ -57,6 +57,7 @@ Response:
 | 401    | `unauthenticated`, `invalid_credentials` | Missing or expired token; wrong login.                                                                                                            |
 | 403    | `forbidden`                              | The caller's role doesn't allow the action.                                                                                                       |
 | 403    | `feature_not_in_plan`                    | The org's tier doesn't include the feature.                                                                                                       |
+| 403    | `plan_limit_reached`                     | The tier includes the feature but the org has used its allowance (connectors, M6). The message names the limit.                                   |
 | 404    | `not_found`                              | Record doesn't exist **or** the caller isn't a member of the org (the API doesn't reveal which).                                                  |
 | 405    | `method_not_allowed`                     | Known path, wrong method. `Allow` header lists valid methods.                                                                                     |
 | 409    | `version_conflict`                       | `ifVersion` doesn't match the stored `version`.                                                                                                   |
@@ -363,17 +364,19 @@ Permission `policies.edit`. Body `{ parentId: string | null, orderedIds: string[
 
 ---
 
-## Controls (read) — M2
+## Controls (read) — M2, extended in M6
 
-Feature `evidence`, permission `evidence.read`. Writes and evidence arrive in M6.
+Feature `evidence`, permission `evidence.read`. M6 adds the summary fields below; evidence, connectors and the audit pack are in [Evidence — M6](#evidence--m6).
 
 ### `GET /orgs/:org/controls` → `ListResponse<Control>`
 
-Filters: `framework`, `status` (`passing|failing|no_evidence|not_applicable`), `documentId`. `q` searches reference, title and description. Default sort `reference`.
+Filters: `framework`, `status` (`passing|failing|no_evidence|not_applicable`), `documentId`, `owner`. `q` searches reference, title and description. **Default order:** ISO 27001, then DPA, NPC and internal, and within a framework by reference with numbers compared as numbers (`A.5.2` before `A.5.10`). `sort` may be any of `reference`, `title`, `framework`, `status`, `ownerName`, `evidenceFrequency`, `lastEvidenceAt`, `evidenceCount`.
 
-`Control`: `{ framework, reference, title, description, documentIds, owner, evidenceFrequency, status }` plus the base entity fields.
+`Control`: `{ framework, reference, title, description, documentIds, owner, evidenceFrequency, status }` plus the base entity fields. The list and the detail return `ControlSummary`, which adds `ownerName`, `evidenceCount`, `lastEvidenceAt` and `connectors` (`[{ id, provider, name, status }]`: the connectors with a check on this control).
 
-### `GET /orgs/:org/controls/:id` → `Control`
+`documentIds` lists only policies the caller may see (**backend must enforce**: an auditor never gets the ID of a draft).
+
+### `GET /orgs/:org/controls/:id` → `ControlSummary`
 
 ---
 
@@ -595,7 +598,7 @@ The Overview dashboard in one call. Any active member may call it; each block is
 - `type` (repeatable or comma-separated `SearchResultType`) restricts the groups returned. `limit` is the maximum results per group: default 8, at most 50.
 - Each group gains `total`: the number of matches, so the UI can offer "Show all N".
 - Group order is fixed: `document`, `processing_activity`, `pia`, `dsr`, `incident`, `agreement`, `system`, `secret_record`, `change`, `risk`, `decision`, `control`, `evidence`, `ai_use_case`.
-- New searchable types: `system` and `risk` (plans with Security; visible to `security.read` or `privacy.read`), and `control` (plans with Evidence, `evidence.read`: reference, title, framework and description; links to `/:org/evidence/controls/:id`). Evidence items join in M6.
+- New searchable types: `system` and `risk` (plans with Security; visible to `security.read` or `privacy.read`), and `control` (plans with Evidence, `evidence.read`: reference, title, framework and description; links to `/:org/evidence/controls/:id`). Evidence items joined in M6 (below).
 - DSRs still match by reference and type only. Requester details never appear.
 
 ## Security — M5
@@ -687,7 +690,7 @@ Every endpoint needs the **Security** plan (Pro and above; Starter gets 403 `fea
 
 ### Controls and evidence
 
-`GET /controls/:id/evidence` — `evidence.read`, Evidence plan. → `ListResponse<EvidenceItem>`, default sort `-collectedAt`; filters `result`, `source`. `Evidence`: `controlId`, `source` (`connector | upload | manual`), `connectorId`, `collectedAt`, `result` (`pass | fail | info`), `summary`, `fileId`, `origin` (`{ type: "access_review", id, label }` or null). `EvidenceItem` adds `collectedByName`, `file` and `originHref`. Uploads, connectors and the rest of the Evidence module are M6; M5 creates items from access review sign-off only.
+`GET /controls/:id/evidence` — `evidence.read`, Evidence plan. → `ListResponse<EvidenceItem>`, default sort `-collectedAt`; filters `result`, `source`. `Evidence`: `controlId`, `source` (`connector | upload | manual`), `connectorId`, `collectedAt`, `result` (`pass | fail | info`), `summary`, `fileId`, `origin` (`{ type: "access_review", id, label }` or null). `EvidenceItem` adds `collectedByName`, `file` and `originHref`. M6 adds `controlReference`, `controlTitle` and `connectorName` to `EvidenceItem`, uploads and connectors (see [Evidence — M6](#evidence--m6)).
 
 ### Links and search (M5)
 
@@ -702,3 +705,148 @@ Every endpoint needs the **Security** plan (Pro and above; Starter gets 403 `fea
 ### Audit actions (M5)
 
 `system.created|updated|deleted`, `access_grant.created|updated|level_changed|revoked`, `access_review.created|signed_off`, `secret.created|updated|rotated|deleted`, `change.logged|updated|reviewed`, `risk.created|updated|closed|deleted`, `decision.created|accepted|updated|superseded|deleted`.
+
+## Evidence — M6
+
+Feature `evidence` (Pro and above; Starter gets 403 `feature_not_in_plan`). Reads need `evidence.read` (owner, admin, DPO, CTO, approver, **auditor**). Writes need `evidence.edit` (owner, admin, DPO, CTO). Types are in `lib/api/types.ts`; request bodies are validated with `lib/schemas/evidence.ts`.
+
+### Control status
+
+A control's `status` follows its evidence. The newest `pass` or `fail` (by `collectedAt`) decides: `pass` → `passing`, `fail` → `failing`. `info` never changes it. No pass or fail → `no_evidence`. `not_applicable` is set by people and never overwritten. Re-judge the control after **every** evidence write (upload, connector run, access review sign-off), including a backdated one. The status isn't aged by `evidenceFrequency`.
+
+### Evidence
+
+`Evidence`: `controlId`, `source` (`connector | upload | manual`), `connectorId`, `checkId` (connector evidence), `collectedAt`, `result` (`pass | fail | info`), `summary`, `fileId`, `origin`. `EvidenceItem` adds `controlReference`, `controlTitle`, `collectedByName` (null for connector evidence), `file`, `connectorName` and `originHref`. Evidence is **never edited or deleted**.
+
+| Endpoint                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /controls/:id/evidence` | As in M5. `q` also searches the connector name and the file name.                                                                                                                                                                                                                                                                                                                                                  |
+| `GET /evidence`              | Every item in the org. Default sort `-collectedAt`. Filters: `source`, `result`, `controlId`. `q` searches summary, control reference and title, connector name, file name and who recorded it. The Uploads page calls it with `source=upload`.                                                                                                                                                                    |
+| `POST /evidence`             | `multipart/form-data`: `file` (required; same type and size rules as `POST /files`) and `controlId`, `summary` (10–500 characters), `result` (`pass \| fail \| info`), `collectedOn` (optional `2026-10-14`). 400 with `fields` on any of them (the future is refused). Today means now; an earlier date is stored at 12:00 in the org's timezone. → 201 `EvidenceItem`. Audit `evidence.uploaded` on the control. |
+
+### Connectors
+
+`Connector`: `provider` (`github | azure | google_workspace | hostinger`), `status` (`connected | error | disconnected`), `account` (the organisation, tenant or domain connected; **never a credential**), `connectedAt`, `lastRunAt`, `lastError` (`{ message, fixHint, at }` or null) and `checks[]` (`{ id, name, controlId, controlReference, lastResult: "pass" \| "fail" \| null, detail, checkedAt }`). Each organisation has one record per provider; `disconnected` means not set up yet. The checks each provider performs are listed in `lib/evidence.ts`.
+
+`status: "error"` means the connector couldn't reach its provider. A check that **fails** is different: the connector stays `connected` and the evidence item has `result: "fail"`.
+
+| Endpoint                   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /connectors`          | `ListResponse<Connector>` in the order GitHub, Azure, Google Workspace, Hostinger. `evidence.read`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `GET /connectors/:id`      | The ID, or the provider name.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `PATCH /connectors/:id`    | `{ ifVersion, status: "connected" \| "disconnected", account? }`. **Connect / Reconfigure:** `status: "connected"` with `account` (kept if omitted; 400 if there is none). Clears `lastError`. A **new** connection (from `disconnected`) is refused with **403 `plan_limit_reached`** at the plan's limit; reconfiguring takes no new slot. **Disconnect** clears `account`; evidence already collected stays. A body with `token`, `password`, `apiKey`, `key`, `secret`, `value` or `clientSecret` is **refused with 400**. Audit `connector.connected \| disconnected`. |
+| `POST /connectors/:id/run` | `evidence.edit`. → `ConnectorRunResult` `{ connector, ok, evidence[] }`. Connected: runs every check, records **one evidence item per check** (`source: "connector"`, `connectorId`, `checkId`) and updates each check's `lastResult`. Error: `200` with `ok: false`, nothing collected, `lastError` kept. Disconnected: **422**. Audit `connector.run` (`checks`, `failed`) or `connector.run_failed`.                                                                                                                                                                     |
+
+`GET /me` `usage.connectors` counts connectors that are `connected` or `error`. Limits: Pro 3, Premium unlimited.
+
+`GET /overview` gains the attention kind `connector_failing` (a connector in `error`; `tone: "bad"`, `ref: null`, `detail` = the error message, `href` = `/:org/evidence/connectors`), for callers with `evidence.edit`. It ranks after `access_review` and before `review_overdue`.
+
+### Audit pack
+
+| Endpoint                 | Notes                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /audit-pack`        | `evidence.read`. Query: `from`, `to` (inclusive `2026-10-14`, in the org's timezone; either may be omitted; 400 if `from` is after `to`), `framework` (comma-separated). → `AuditPack`: `{ from, to, generatedAt, totals: { controls, passing, failing, no_evidence, evidence }, controls: AuditPackControl[] }`, ordered like `GET /controls`. |
+| `GET /audit-pack/export` | Same query. The mock returns a CSV (`Content-Disposition: audit-pack-<org>-<from>_to_<to>.csv`), one row per evidence item and one row for a control with none. **The backend should return a zip** of the register and the evidence files. Audit `audit_pack.exported` with the period.                                                        |
+
+`AuditPackControl`: `{ control, periodStatus, policies[], evidence[] }`. `periodStatus` is judged from the evidence **inside the period** with the same rule as a control's status (so a control with nothing in the period is `no_evidence`). `evidence` is the period's items, newest first. `policies` lists, for each policy linked to the control, its **approved version on record**: `{ id, docId, title, version, approvedAt, approvedByName, effectiveDate, href }`.
+
+**Backend must enforce:** a policy that has never been approved, or is retired, is never listed, whoever asks. Callers who can't read drafts (auditors) only get policies they can see, at the approved version, as in the Visibility rule for documents.
+
+### Search and audit actions (M6)
+
+`GET /search` adds `evidence` (plans with Evidence, `evidence.read`): `ref` is the control's reference, `title` the summary (cut at 100 characters), `href` is `/:org/evidence/controls/:controlId#:evidenceId`. The text searched includes the control title, connector name and file name.
+
+New audit actions: `evidence.uploaded`, `connector.connected`, `connector.disconnected`, `connector.run`, `connector.run_failed`, `audit_pack.exported`.
+
+---
+
+## Ask — M7
+
+Feature `ask.policy` (every plan except VisorShield-only), permission `ask.use`. Types: `AskRequest`, `AskStreamEvent`, `AskMessage`, `AskThread`, `AskThreadDetail`, `Citation` in `lib/api/types.ts`.
+
+### Answer rules (backend must keep)
+
+- Every statement in an answer carries a citation marker `[n]` that refers to a `citation` event. **An answer with no citations must set `grounded: false`** and say it couldn't find the answer; the UI never shows an uncited answer as fact.
+- Policy answers quote **approved** versions only (or, with `asOf`, the version in force at the end of that day in the tenant's timezone). `Citation.href` for a policy section is `/:org/policies/:id#<heading-anchor>` when the quoted version is the document's current version, else `/:org/policies/:id/versions/:v#<heading-anchor>`. Heading anchors are GitHub-slugger IDs of the rendered headings.
+- Records answers cite only records the caller can see. Auditor-only guests: approved policies, controls and evidence.
+
+### `POST /orgs/:org/ask` → `text/event-stream`
+
+Body `AskRequest`:
+
+| Field      | Notes                                                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `question` | 3–1000 characters                                                                                                                                                                    |
+| `threadId` | Continue a conversation; omit to start one. Another user's thread → 404.                                                                                                             |
+| `route`    | `policy` \| `records` \| `impact`, or omit for automatic routing. `records`/`impact` need `ask.records`/`ask.impact` (403 `feature_not_in_plan`); auditors can't pin `impact` (403). |
+| `asOf`     | `YYYY-MM-DD`, not in the future (400 `fields.asOf`).                                                                                                                                 |
+| `context`  | `{ type: RecordType, id }`: the page Quick Ask was opened from.                                                                                                                      |
+
+Errors **before** the stream are JSON: 400, 403 (`forbidden`, `feature_not_in_plan`, `plan_limit_reached` when the month's questions are used up), 404. Each accepted question counts once against `usage.askQuestions`.
+
+Stream (`event:` name, `data:` JSON), in order:
+
+| Event      | Data                                                                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `route`    | `{ route }`                                                                                                                                               |
+| `citation` | `Citation` `{ n, kind: policy_section\|record\|evidence, label, href, docId?, version?, sectionId?, excerpt }`, sent before the first token that cites it |
+| `token`    | `{ text }`; concatenate in order. The text is Markdown-lite with `[n]` markers.                                                                           |
+| `done`     | `{ messageId, threadId, userMessageId, grounded, suggestions[], usage: { used, limit, periodStart } }`                                                    |
+| `error`    | `{ code, message }`; the stream ends without `done`.                                                                                                      |
+
+Mock: `?simulate=stream_error` sends an `error` part-way.
+
+### `GET /orgs/:org/ask/threads` → `ListResponse<AskThread>`
+
+The caller's own conversations. Default sort `-updatedAt`; `q` searches titles.
+
+### `GET /orgs/:org/ask/threads/:id` → `AskThreadDetail`
+
+Messages oldest first. 404 for another user's thread.
+
+### `DELETE /orgs/:org/ask/threads/:id` → 204
+
+### `POST /orgs/:org/ask/messages/:id/feedback` → `AskMessage`
+
+Body `{ rating: "up" | "down", note? }` (note up to 1000 characters). The asker's own answers only (404 otherwise); a new rating replaces the old one.
+
+---
+
+## Questionnaires — M7
+
+Feature `questionnaires` (Pro and Premium). Read: `questionnaires.read`; write: `questionnaires.edit`. Types: `QuestionnaireSummary`, `Questionnaire`, `QuestionnaireRow`, `QuestionnaireMapping`, `QuestionnaireRowResult`.
+
+### `GET /orgs/:org/questionnaires` → `ListResponse<QuestionnaireSummary>`
+
+Filter `status` (`mapping`, `in_review`, `complete`); `q` searches name, client, file name. Default sort `-uploadedAt`. Each summary has `progress { total, approved, edited, draft, needsInput }`.
+
+### `POST /orgs/:org/questionnaires` (multipart) → 201 `Questionnaire`
+
+Fields `file` (CSV or XLSX, up to 10 MB and 500 rows), `name` (3–160), `client` (2–160). The backend parses the first worksheet; the first non-empty row is the header. The response is in status `mapping`, with `columns`, `preview` (first 5 rows) and `suggestedMapping`. 400 `fields.file` for an unreadable, empty or unsupported file.
+
+### `GET /orgs/:org/questionnaires/:id` → `Questionnaire`
+
+### `POST /orgs/:org/questionnaires/:id/mapping` → `Questionnaire`
+
+Body `{ ifVersion, questionColumn, answerColumn | null }` (`null` appends an "Answer" column on export). Drafts an answer for every row with a question: approved policy text with `citations`, or an empty answer with status `needs_input`. 422 once any answer has been edited or approved.
+
+### `PATCH /orgs/:org/questionnaires/:id/rows/:rowId` → `QuestionnaireRowResult`
+
+Body `{ ifVersion, draftAnswer?, status? }`. `ifVersion` is the **row's** `version` (409 on mismatch). Changing the text without a status sets `edited`. `approved` needs a non-empty answer (422); a reviewed row can't return to `draft` (422). The response adds the questionnaire's new `questionnaireStatus` (`complete` when every row is approved) and `progress`.
+
+### `DELETE /orgs/:org/questionnaires/:id` → 204
+
+### `POST /orgs/:org/questionnaires/:id/export` → file
+
+The client's file in its original format (`text/csv` or the XLSX type), named `<original name> (answered).<ext>` (`Content-Disposition` with an RFC 6266 `filename*`). Every non-empty answer is written to the mapped answer column with citation markers removed; other cells are unchanged. Permission `questionnaires.read`; audit-logged. 422 before mapping.
+
+---
+
+## Test-only endpoints (mock mode)
+
+Available only when `API_MODE=mock` and `MOCK_ALLOW_RESET=1` (the Playwright config sets both); otherwise 404. Not part of the FastAPI contract.
+
+| Endpoint               | Body                    | Effect                               |
+| ---------------------- | ----------------------- | ------------------------------------ |
+| `POST /api/mock/reset` | –                       | Reseeds the store                    |
+| `POST /api/mock/usage` | `{ org, askQuestions }` | Sets this month's Ask question count |

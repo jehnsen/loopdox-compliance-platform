@@ -37,7 +37,11 @@ export function usageFor(db: MockDB, org: Org, now: Date): Usage {
     },
     users: { used: users, limit: USER_LIMITS[org.tier] },
     storageMb: { used: org.tier === 'starter' ? 84 : 2_310, limit: STORAGE_LIMITS_MB[org.tier] },
-    connectors: { used: org.tier === 'premium' ? 3 : 0, limit: CONNECTOR_LIMITS[org.tier] },
+    // A connector that is connected, or has failed and needs fixing, takes a slot.
+    connectors: {
+      used: db.connectors.filter((c) => c.orgId === org.id && c.status !== 'disconnected').length,
+      limit: CONNECTOR_LIMITS[org.tier],
+    },
   }
 }
 

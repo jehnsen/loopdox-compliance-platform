@@ -377,3 +377,39 @@
     }
   }
 }
+
+/* ---------- Ask citations ---------- */
+@layer components {
+  .markdown sup.citation-ref,
+  .markdown sup.citation-pending {
+    font-size: 0.75em;
+    line-height: 0;
+    margin-left: 0.15em;
+    font-variant-numeric: tabular-nums;
+  }
+  .markdown a.citation-link {
+    display: inline-block;
+    min-width: 1.5em;
+    padding: 0.1em 0.35em;
+    line-height: 1.2;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  .markdown sup.citation-pending {
+    color: var(--muted);
+  }
+  /* The heading an Ask citation pointed to. */
+  .markdown [data-cited='true'] {
+    background: var(--warn-soft);
+    border-radius: 4px;
+    box-shadow: 0 0 0 4px var(--warn-soft);
+    transition: background 0.6s ease;
+  }
+}

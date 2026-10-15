@@ -17,7 +17,8 @@ const landing: [string, string, string][] = [
   [USERS.jehnsen, '/select-org', 'Jehnsen Enrique'],
   [USERS.michael, '/3rdloop', 'Michael Manabat'],
   [USERS.staff, '/3rdloop', 'Staff Member'],
-  [USERS.auditor, '/3rdloop', 'External Auditor'],
+  // External auditors land on the read-only audit pack.
+  [USERS.auditor, '/3rdloop/evidence/audit-pack', 'External Auditor'],
   [USERS.clinicDpo, '/sample-clinic', 'Dra. Liza Santos'],
   [USERS.clinicStaff, '/sample-clinic', 'Clinic Front Desk'],
 ]

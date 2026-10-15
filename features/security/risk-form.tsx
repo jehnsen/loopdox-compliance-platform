@@ -94,16 +94,7 @@ export function RiskForm({ record }: { record?: RiskSummary }) {
           controlIds: [],
         },
   })
-  const {
-    register,
-    control,
-    handleSubmit,
-    setError,
-    setValue,
-    getValues,
-    reset,
-    formState,
-  } = form
+  const { register, control, handleSubmit, setError, setValue, getValues, reset, formState } = form
   const errors = formState.errors
   const [likelihood, impact, resL, resI] = useWatch({
     control,

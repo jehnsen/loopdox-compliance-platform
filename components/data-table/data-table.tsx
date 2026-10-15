@@ -5,6 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type Row,
   type RowData,
   type RowSelectionState,
 } from '@tanstack/react-table'
@@ -95,6 +96,32 @@ export interface DataTableProps<T> {
   /** Enables row selection; receives the selected IDs for bulk actions. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   rowClassName?: (row: T) => string | undefined
+  /**
+   * Groups consecutive rows under a heading row (a framework, a status). Rows keep the
+   * server's order, so the groups only make sense while the sort is the default one.
+   */
+  groupBy?: { key: (row: T) => string; heading: (key: string, rows: T[]) => ReactNode } | null
+}
+
+/** Splits rows into consecutive groups for `groupBy`; without it, one group with no heading. */
+function groupRows<T>(
+  rows: Row<T>[],
+  groupBy: DataTableProps<T>['groupBy'],
+): { key: string; heading: ReactNode; rows: Row<T>[] }[] {
+  if (!groupBy) return [{ key: 'all', heading: null, rows }]
+  const groups: { key: string; heading: ReactNode; rows: Row<T>[] }[] = []
+  for (const row of rows) {
+    const key = groupBy.key(row.original)
+    const last = groups[groups.length - 1]
+    if (last && last.key === key) last.rows.push(row)
+    else groups.push({ key, heading: null, rows: [row] })
+  }
+  for (const g of groups)
+    g.heading = groupBy.heading(
+      g.key,
+      g.rows.map((r) => r.original),
+    )
+  return groups
 }
 
 function SortIcon({ dir }: { dir: 'asc' | 'desc' | null }) {
@@ -123,6 +150,7 @@ export function DataTable<T>({
   exportPath,
   bulkActions,
   rowClassName,
+  groupBy,
 }: DataTableProps<T>) {
   const { density, setDensity } = useUiPrefs()
   const [search, setSearch] = useState(params.q)
@@ -378,18 +406,33 @@ export function DataTable<T>({
                 </tr>
               ))}
             </thead>
-            <tbody>
-              {isLoading
-                ? Array.from({ length: 6 }, (_, i) => (
-                    <tr key={i} className={rowHeight}>
-                      {table.getVisibleLeafColumns().map((c) => (
-                        <td key={c.id} className="border-b border-line px-3">
-                          <Skeleton className="h-4 w-full max-w-40" />
-                        </td>
-                      ))}
+            {isLoading ? (
+              <tbody>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <tr key={i} className={rowHeight}>
+                    {table.getVisibleLeafColumns().map((c) => (
+                      <td key={c.id} className="border-b border-line px-3">
+                        <Skeleton className="h-4 w-full max-w-40" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            ) : (
+              groupRows(table.getRowModel().rows, groupBy).map((group) => (
+                <tbody key={group.key}>
+                  {group.heading ? (
+                    <tr>
+                      <th
+                        scope="rowgroup"
+                        colSpan={table.getVisibleLeafColumns().length}
+                        className="border-b border-line bg-surface-2/60 px-3 py-1.5 text-left text-xs font-semibold text-muted"
+                      >
+                        {group.heading}
+                      </th>
                     </tr>
-                  ))
-                : table.getRowModel().rows.map((row) => (
+                  ) : null}
+                  {group.rows.map((row) => (
                     <tr
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
@@ -413,7 +456,11 @@ export function DataTable<T>({
                       ))}
                     </tr>
                   ))}
-              {!isLoading && total === 0 ? (
+                </tbody>
+              ))
+            )}
+            {!isLoading && total === 0 ? (
+              <tbody>
                 <tr>
                   <td
                     colSpan={table.getVisibleLeafColumns().length}
@@ -422,8 +469,8 @@ export function DataTable<T>({
                     {noMatchesText}
                   </td>
                 </tr>
-              ) : null}
-            </tbody>
+              </tbody>
+            ) : null}
           </table>
         </div>
       )}

@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, type ComponentProps } from 'react'
+import { useEffect, useMemo, useRef, type ComponentProps } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
 import { useDocumentLookup } from '@/lib/api/hooks/use-documents'
-import type { DocumentLookupItem } from '@/lib/api/types'
+import type { Citation, DocumentLookupItem } from '@/lib/api/types'
+import { remarkCitations } from '@/lib/markdown/citations'
 import { markdownSchema } from '@/lib/markdown/sanitize'
 import { remarkWikiLinks, WIKI_LINK } from '@/lib/markdown/wiki-links'
 import { cn } from '@/lib/utils/cn'
@@ -44,14 +45,34 @@ const components: Components = {
 /**
  * Renders user Markdown safely: GFM tables, heading anchors, and [[ID]] links
  * to other policies. Raw HTML is never rendered.
+ *
+ * With `citations` (Ask answers), `[n]` markers render as superscript source links.
+ * When the URL's #hash names a heading inside, it scrolls there and highlights it
+ * once the content has rendered (Ask citations link to policy sections this way).
  */
 export function MarkdownView({
   markdown,
   className,
   lookup,
+  citations,
   ...props
-}: { markdown: string; lookup?: DocumentLookupItem[] } & Omit<ComponentProps<'div'>, 'children'>) {
+}: { markdown: string; lookup?: DocumentLookupItem[]; citations?: Citation[] } & Omit<
+  ComponentProps<'div'>,
+  'children'
+>) {
   const org = useOrgSlug()
+  const container = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const hash = decodeURIComponent(window.location.hash.slice(1))
+    if (!hash || !container.current) return
+    const target = container.current.querySelector<HTMLElement>(`[id="${CSS.escape(hash)}"]`)
+    if (!target) return
+    target.scrollIntoView({ block: 'start' })
+    target.dataset.cited = 'true'
+    const t = setTimeout(() => delete target.dataset.cited, 4000)
+    return () => clearTimeout(t)
+  }, [markdown])
   const needsLookup = !lookup && new RegExp(WIKI_LINK.source).test(markdown)
   const { data: fetched } = useDocumentLookup(org, needsLookup)
   const items = lookup ?? fetched
@@ -60,6 +81,7 @@ export function MarkdownView({
     const byId = new Map((items ?? []).map((d) => [d.docId.toUpperCase(), d]))
     return [
       remarkGfm,
+      ...(citations ? [[remarkCitations, { citations }]] : []),
       [
         remarkWikiLinks,
         {
@@ -68,10 +90,10 @@ export function MarkdownView({
         },
       ],
     ] as NonNullable<ComponentProps<typeof ReactMarkdown>['remarkPlugins']>
-  }, [items, org])
+  }, [items, org, citations])
 
   return (
-    <div className={cn('markdown', className)} {...props}>
+    <div ref={container} className={cn('markdown', className)} {...props}>
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={[[rehypeSanitize, markdownSchema], rehypeSlug]}

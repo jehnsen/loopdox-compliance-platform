@@ -22,6 +22,11 @@ export const qk = {
   controls: (org: string, query: ListQuery) => [org, 'controls', query] as const,
   control: (org: string, id: string) => [org, 'controls', 'detail', id] as const,
   controlEvidence: (org: string, id: string) => [org, 'controls', 'evidence', id] as const,
+  /** Every evidence item in the org (Uploads page). Under 'controls' so one invalidation refreshes it. */
+  evidenceList: (org: string, query: ListQuery) =>
+    [org, 'controls', 'evidence-list', query] as const,
+  connectors: (org: string) => [org, 'connectors'] as const,
+  auditPack: (org: string, query: ListQuery) => [org, 'audit-pack', query] as const,
   /** Everything security-related lives under [org, 'security'] so one invalidation refreshes lists and details. */
   security: {
     all: (org: string) => [org, 'security'] as const,
@@ -40,5 +45,14 @@ export const qk = {
     links: (org: string, type: string, id: string) => [org, 'privacy', 'links', type, id] as const,
     candidates: (org: string, type: string, forRecord: string, q: string) =>
       [org, 'privacy', 'link-candidates', type, forRecord, q] as const,
+  },
+  ask: {
+    threads: (org: string) => [org, 'ask', 'threads'] as const,
+    thread: (org: string, id: string) => [org, 'ask', 'thread', id] as const,
+  },
+  questionnaires: {
+    all: (org: string) => [org, 'questionnaires'] as const,
+    list: (org: string, query: ListQuery) => [org, 'questionnaires', 'list', query] as const,
+    detail: (org: string, id: string) => [org, 'questionnaires', 'detail', id] as const,
   },
 }

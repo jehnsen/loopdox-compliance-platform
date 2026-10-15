@@ -95,7 +95,11 @@ test('command palette jumps to pages and sends questions to Ask', async ({ page 
   await page.getByRole('button', { name: /Search or jump to/ }).click()
   await input.fill('who approves access changes?')
   await page.getByRole('option', { name: /Ask: who approves access changes\?/ }).click()
-  await expect(page).toHaveURL('/3rdloop/ask?q=who%20approves%20access%20changes%3F')
+  // The question opens in the Quick Ask panel (M7) instead of navigating away.
+  await expect(page.getByRole('dialog', { name: 'Ask' })).toBeVisible()
+  await expect(
+    page.getByRole('dialog', { name: 'Ask' }).getByText('who approves access changes?'),
+  ).toBeVisible()
 })
 
 test('theme toggle switches to dark and persists', async ({ page }) => {

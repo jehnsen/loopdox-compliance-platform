@@ -129,14 +129,20 @@ export const api = {
 export async function downloadFile(
   path: string,
   query?: Record<string, QueryValue>,
+  { method = 'GET' }: { method?: 'GET' | 'POST' } = {},
 ): Promise<void> {
   const res = await fetch(`/api/v1${path}${toQueryString(query)}`, {
+    method,
     credentials: 'same-origin',
     cache: 'no-store',
   })
   if (!res.ok) throw await toApiError(res)
   const disposition = res.headers.get('content-disposition') ?? ''
-  const filename = /filename="?([^"]+)"?/.exec(disposition)?.[1] ?? 'export'
+  // Prefer the UTF-8 name (RFC 6266 filename*) over the ASCII fallback.
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
+  const filename = encoded
+    ? decodeURIComponent(encoded)
+    : (/filename="?([^";]+)"?/.exec(disposition)?.[1] ?? 'export')
   const url = URL.createObjectURL(await res.blob())
   const a = document.createElement('a')
   a.href = url

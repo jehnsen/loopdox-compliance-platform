@@ -11,10 +11,13 @@ test('M4 acceptance: every Needs attention item opens its record and the counts 
   page,
 }) => {
   await signInAs(page, USERS.jehnsen, '/3rdloop')
-  await expect(page.getByTestId('attention-total')).toHaveText('8')
+  await expect(page.getByTestId('attention-total')).toHaveText('9')
+  // The list shows the eight most urgent; "Show all" adds the rest.
   await expect(items(page)).toHaveCount(8)
+  await page.getByRole('button', { name: 'Show all 9' }).click()
+  await expect(items(page)).toHaveCount(9)
 
-  // Ranked by risk class: breach, request, approval, rotations, access review, review, agreement.
+  // Ranked by risk class: breach, request, approval, rotations, access review, connector, review, agreement.
   const kinds = await items(page).evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')))
   expect(kinds).toEqual([
     'breach_deadline',
@@ -23,6 +26,7 @@ test('M4 acceptance: every Needs attention item opens its record and the counts 
     'secret_rotation',
     'secret_rotation',
     'access_review',
+    'connector_failing',
     'review_overdue',
     'agreement_renewal',
   ])
@@ -44,10 +48,12 @@ test('M4 acceptance: every Needs attention item opens its record and the counts 
     { path: /\/security\/secrets\?q=SCR-005/, heading: /SCR-005/ },
     { path: /\/security\/secrets\?q=SCR-002/, heading: /SCR-002/ },
     { path: /\/security\/access-reviews\/ar_/, heading: /AR-002/ },
+    { path: /\/evidence\/connectors$/, heading: /Hostinger/ },
     { path: /\/policies\/doc_itd_013/, heading: /ITD-013/ },
     { path: /\/privacy\/agreements\/agr_001/, heading: /AGR-001/ },
   ]
   for (const [i, e] of expected.entries()) {
+    if (i >= 8) await page.getByRole('button', { name: 'Show all 9' }).click()
     await items(page).nth(i).click()
     await expect(page).toHaveURL(e.path)
     await expect(page.getByRole('main')).toContainText(e.heading)

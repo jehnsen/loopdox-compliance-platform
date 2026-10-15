@@ -48,7 +48,7 @@ function visibleRecord(ctx: OrgCtx, type: RecordType, id: string) {
   return stored
 }
 
-function groupsFor(ctx: OrgCtx, type: RecordType, id: string): LinkGroup[] {
+export function groupsFor(ctx: OrgCtx, type: RecordType, id: string): LinkGroup[] {
   const self = visibleRecord(ctx, type, id)
   const groups: LinkGroup[] = []
   for (const { relation, other, direction } of relationsFor(type)) {
