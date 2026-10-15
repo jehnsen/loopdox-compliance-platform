@@ -188,3 +188,78 @@ for (const scheme of ['light', 'dark'] as const) {
     })
   })
 }
+
+for (const scheme of ['light', 'dark'] as const) {
+  test.describe(`security, ${scheme} mode`, () => {
+    test.use({ colorScheme: scheme })
+
+    test('registers, records and forms', async ({ page }) => {
+      test.setTimeout(240_000)
+      await signInAs(page, USERS.jehnsen, '/3rdloop/security/assets')
+      for (const [path, ready] of [
+        ['/3rdloop/security/assets', 'table'],
+        ['/3rdloop/security/assets/sys_github', 'heading'],
+        ['/3rdloop/security/assets/sys_github/edit', 'textbox'],
+        ['/3rdloop/security/assets/new', 'textbox'],
+        ['/3rdloop/security/access', 'heading'],
+        ['/3rdloop/security/access?view=person', 'heading'],
+        ['/3rdloop/security/access-reviews', 'table'],
+        ['/3rdloop/security/access-reviews/new', 'textbox'],
+        ['/3rdloop/security/secrets', 'table'],
+        ['/3rdloop/security/changes', 'table'],
+        ['/3rdloop/security/risks', 'table'],
+        ['/3rdloop/security/risks/risk_001', 'heading'],
+        ['/3rdloop/security/risks/risk_001/edit', 'textbox'],
+        ['/3rdloop/security/risks/new', 'textbox'],
+        ['/3rdloop/security/decisions', 'table'],
+        ['/3rdloop/security/decisions/adr_001', 'heading'],
+        ['/3rdloop/security/decisions/adr_003', 'heading'],
+        ['/3rdloop/security/decisions/new?supersedes=adr_001', 'textbox'],
+        ['/3rdloop/evidence/controls/ctl_a_5_15', 'list'],
+      ] as const) {
+        await page.goto(path)
+        await expect(page.getByRole(ready).first()).toBeVisible()
+        await expectNoViolations(page, path)
+      }
+    })
+
+    test('review run page and dialogs', async ({ page }) => {
+      test.setTimeout(120_000)
+      await signInAs(page, USERS.jehnsen, '/3rdloop/security/access-reviews')
+      await page
+        .getByRole('link', { name: /Access review \d{4}-Q\d/ })
+        .first()
+        .click()
+      await expect(page.getByTestId('review-progress')).toBeVisible()
+      await expectNoViolations(page, 'review run page')
+      await page.getByRole('radio', { name: 'Revoke' }).first().click()
+      await expectNoViolations(page, 'revoke editor')
+
+      await page.goto('/3rdloop/security/access')
+      await page.getByRole('button', { name: 'Add access' }).first().click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'grant dialog')
+      await page.keyboard.press('Escape')
+
+      await page.goto('/3rdloop/security/secrets')
+      await page.getByRole('button', { name: 'Add secret record' }).first().click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'secret dialog')
+      await page.keyboard.press('Escape')
+
+      await page.goto('/3rdloop/security/changes')
+      await page.getByRole('button', { name: 'Log a change' }).first().click()
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expectNoViolations(page, 'change dialog')
+    })
+
+    test('read-only views for the approver and auditor', async ({ page }) => {
+      await signInAs(page, USERS.michael, '/3rdloop/security/risks')
+      await expect(page.getByRole('table').first()).toBeVisible()
+      await expectNoViolations(page, 'approver risks')
+      await signInAs(page, USERS.auditor, '/3rdloop/security/access-reviews')
+      await expect(page.getByRole('table').first()).toBeVisible()
+      await expectNoViolations(page, 'auditor reviews')
+    })
+  })
+}

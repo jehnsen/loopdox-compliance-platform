@@ -187,6 +187,59 @@ attentionSources.push((ctx) => {
   })
 })
 
+// Secrets past their rotation date. The record says where the secret lives, never its value.
+attentionSources.push((ctx) => {
+  if (!hasFeature(ctx.org.tier, 'security') || !ctx.can('security.read')) return []
+  return inOrg(ctx, ctx.db.secrets).flatMap((x) => {
+    const days = daysUntil(x.nextDueAt, ctx.org.timezone, ctx.now)
+    if (days >= 0) return []
+    const late = Math.abs(days)
+    return [
+      {
+        urgency: days,
+        item: {
+          id: `secret_rotation:${x.id}`,
+          kind: 'secret_rotation' as const,
+          tone: 'bad' as const,
+          ref: x.ref,
+          title: x.name,
+          detail: `Rotation overdue by ${late} ${late === 1 ? 'day' : 'days'}`,
+          badge: x.owner === ctx.user.id ? 'You own this' : null,
+          deadline: null,
+          href: `/${ctx.org.slug}/security/secrets?q=${x.ref}`,
+        },
+      },
+    ]
+  })
+})
+
+// Access reviews that are open: the quarter's review is work to finish before the period ends.
+attentionSources.push((ctx) => {
+  if (!hasFeature(ctx.org.tier, 'security') || !ctx.can('security.read')) return []
+  return inOrg(ctx, ctx.db.accessReviews)
+    .filter((r) => r.status === 'in_progress')
+    .map((r) => {
+      const days = daysUntil(r.dueAt, ctx.org.timezone, ctx.now)
+      const decided = r.items.filter((i) => i.decision).length
+      return {
+        urgency: days,
+        item: {
+          id: `access_review:${r.id}`,
+          kind: 'access_review' as const,
+          tone: days < 0 ? ('bad' as const) : ('warn' as const),
+          ref: r.ref,
+          title: `Access review ${r.period}`,
+          detail: `${decided} of ${r.items.length} decided · ${
+            days < 0 ? dueInPhrase(days) : dueInPhrase(days, 'Due')
+          }`,
+          badge: r.reviewer === ctx.user.id ? 'You’re the reviewer' : null,
+          deadline: null,
+          href: `/${ctx.org.slug}/security/access-reviews/${r.id}`,
+        },
+      }
+    })
+})
+
 /**
  * Ranked by risk class first (breaches, then requests, approvals… as in
  * ATTENTION_ORDER), then overdue before upcoming, then by how soon.
@@ -250,7 +303,13 @@ const RECORD_TYPES: readonly RecordType[] = [
   'agreement',
   'system',
   'risk',
+  'secret_record',
+  'change',
+  'decision',
 ]
+const SECURITY_PAGES: Record<string, string> = {
+  access_review: 'security/access-reviews',
+}
 const PRIVACY_PAGES: Record<string, string> = {
   registration: 'privacy/registration',
   training_record: 'privacy/training',
@@ -264,6 +323,7 @@ function recentActivity(ctx: OrgCtx, limit: number): ActivityItem[] {
     for (const r of visibleRecords(ctx, type)) visible.add(`${type}:${r.id}`)
   }
   const canSeePrivacyPages = hasFeature(ctx.org.tier, 'privacy') && ctx.can('privacy.read')
+  const canSeeSecurity = hasFeature(ctx.org.tier, 'security') && ctx.can('security.read')
   const events: ActivityItem[] = []
   const sorted = inOrg(ctx, ctx.db.auditEvents).sort((a, b) => b.at.localeCompare(a.at))
   for (const e of sorted) {
@@ -271,11 +331,14 @@ function recentActivity(ctx: OrgCtx, limit: number): ActivityItem[] {
     // A reveal names a field of a masked record: for people who manage the log only.
     if (e.action.startsWith('sensitive.') && !isAdmin) continue
     const page = PRIVACY_PAGES[e.targetType]
+    const securityPage = SECURITY_PAGES[e.targetType]
     const href = visible.has(`${e.targetType}:${e.targetId}`)
       ? recordHref(ctx.org.slug, e.targetType as RecordType, e.targetId)
       : page && canSeePrivacyPages
         ? `/${ctx.org.slug}/${page}`
-        : null
+        : securityPage && canSeeSecurity
+          ? `/${ctx.org.slug}/${securityPage}/${e.targetId}`
+          : null
     if (!href && !isAdmin) continue
     events.push({
       id: e.id,

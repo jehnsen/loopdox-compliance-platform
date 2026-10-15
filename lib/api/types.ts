@@ -570,7 +570,19 @@ export interface FileRef {
 
 /** Records that can be linked to each other and shown in LinkedRecords. */
 export type RecordType =
-  'document' | 'processing_activity' | 'pia' | 'dsr' | 'incident' | 'agreement' | 'system' | 'risk'
+  | 'document'
+  | 'processing_activity'
+  | 'pia'
+  | 'dsr'
+  | 'incident'
+  | 'agreement'
+  | 'system'
+  | 'risk'
+  | 'access_grant'
+  | 'secret_record'
+  | 'change'
+  | 'decision'
+  | 'control'
 
 /** A pointer to any record: enough to render an ID chip, a title and a link. */
 export interface RecordRef {
@@ -1061,6 +1073,27 @@ export type SystemType =
   'server' | 'cloud_account' | 'repository' | 'domain' | 'saas' | 'database' | 'other'
 
 export interface System extends BaseEntity {
+  /** "SYS-001" */
+  ref: string
+  name: string
+  type: SystemType
+  provider: string
+  owner: string
+  classification: Classification
+  hosting: string
+  holdsPersonalData: boolean
+  notes: string
+}
+
+export interface SystemSummary extends System {
+  ownerName: string
+  updatedByName: string
+  /** Active access grants on this system. */
+  grantCount: number
+  secretCount: number
+}
+
+export interface SystemInput {
   name: string
   type: SystemType
   provider: string
@@ -1081,8 +1114,13 @@ export interface Risk extends BaseEntity {
   description: string
   likelihood: Score
   impact: Score
+  /** likelihood × impact. */
   inherentScore: number
   treatment: RiskTreatment
+  /** Likelihood and impact once the treatment is in place; null until assessed. */
+  residualLikelihood: Score | null
+  residualImpact: Score | null
+  /** residualLikelihood × residualImpact; null until assessed. */
   residualScore: number | null
   owner: string
   documentIds: string[]
@@ -1091,7 +1129,30 @@ export interface Risk extends BaseEntity {
   status: RiskStatus
 }
 
-/** M3 creates risks from a post-incident review; the register arrives in M5. */
+export interface RiskSummary extends Risk {
+  ownerName: string
+  updatedByName: string
+  /** Review date state: overdue once passed, due_soon within 30 days. Null when closed. */
+  reviewState: DueState | null
+  daysToReview: number | null
+}
+
+export interface RiskInput {
+  title: string
+  description: string
+  likelihood: Score
+  impact: Score
+  treatment: RiskTreatment
+  residualLikelihood: Score | null
+  residualImpact: Score | null
+  owner: string
+  reviewAt: ISODate
+  status: RiskStatus
+  documentIds: string[]
+  controlIds: string[]
+}
+
+/** M3 creates risks from a post-incident review; the full register is M5. */
 export interface CreateRiskRequest {
   title: string
   description: string
@@ -1100,4 +1161,263 @@ export interface CreateRiskRequest {
   owner: string
   /** Links the new risk to this incident. */
   incidentId?: string
+}
+
+// ---------------------------------------------------------------------------
+// Security: access grants and reviews (M5)
+// ---------------------------------------------------------------------------
+
+export type AccessLevel = 'owner' | 'admin' | 'write' | 'read'
+export type GrantStatus = 'active' | 'revoked'
+
+export interface AccessGrant extends BaseEntity {
+  systemId: string
+  /** A member of the organisation… */
+  userId: string | null
+  /** …or someone outside it (a contractor, a vendor account). Exactly one is set. */
+  externalName: string | null
+  level: AccessLevel
+  approvedBy: string
+  grantedAt: ISODate
+  lastReviewedAt: ISODate | null
+  status: GrantStatus
+  revokedAt: ISODateTime | null
+  notes: string
+}
+
+export interface AccessGrantSummary extends AccessGrant {
+  systemName: string
+  systemRef: string
+  /** Member name, or the external party's name. */
+  personName: string
+  /** Stable key for grouping by person: the user ID, or "ext:" plus the name. */
+  personKey: string
+  approvedByName: string
+  updatedByName: string
+}
+
+export interface AccessGrantInput {
+  systemId: string
+  userId: string | null
+  externalName: string | null
+  level: AccessLevel
+  approvedBy: string
+  grantedAt: ISODate
+  notes: string
+}
+
+export type ReviewDecision = 'keep' | 'revoke' | 'change'
+export type AccessReviewStatus = 'in_progress' | 'signed_off'
+
+export interface AccessReviewItem {
+  grantId: string
+  /** What the grant was when the review started, so the record stays readable after changes. */
+  systemId: string
+  systemName: string
+  personName: string
+  level: AccessLevel
+  decision: ReviewDecision | null
+  note: string
+  /** For "change": the level the person should have. */
+  newLevel: AccessLevel | null
+  decidedBy: string | null
+  decidedAt: ISODateTime | null
+}
+
+export interface AccessReview extends BaseEntity {
+  /** "AR-001" */
+  ref: string
+  /** "2026-Q4" */
+  period: string
+  /** Last day of the period. */
+  dueAt: ISODate
+  systemIds: string[]
+  reviewer: string
+  items: AccessReviewItem[]
+  status: AccessReviewStatus
+  signedOffAt: ISODateTime | null
+  signedOffBy: string | null
+  /** The evidence item created at sign-off. */
+  evidenceId: string | null
+}
+
+export interface AccessReviewSummary extends AccessReview {
+  reviewerName: string
+  signedOffByName: string | null
+  updatedByName: string
+  systemNames: string[]
+  decided: number
+  total: number
+  counts: Record<ReviewDecision, number>
+  /** overdue once the period has ended without sign-off. */
+  dueState: DueState | null
+  daysLeft: number
+  /** Control that received the evidence, once signed off. */
+  evidence: EvidenceItem | null
+}
+
+export interface CreateAccessReviewRequest {
+  period: string
+  systemIds: string[]
+  reviewer: string
+}
+
+export interface ReviewDecisionRequest {
+  ifVersion: number
+  /** null clears the decision. */
+  decision: ReviewDecision | null
+  note?: string
+  newLevel?: AccessLevel | null
+}
+
+export interface BulkKeepRequest {
+  ifVersion: number
+  /** Undecided items only; omit for all of them. */
+  grantIds?: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Security: secrets, changes, decisions (M5)
+// ---------------------------------------------------------------------------
+
+/** Where a secret lives and when it is due for rotation. Never the secret value. */
+export interface SecretRecord extends BaseEntity {
+  /** "SCR-001" */
+  ref: string
+  name: string
+  /** e.g. "Azure Key Vault: kv-prod". */
+  location: string
+  systemId: string | null
+  owner: string
+  lastRotatedAt: ISODate
+  rotationDays: number
+  /** lastRotatedAt + rotationDays. */
+  nextDueAt: ISODate
+  notes: string
+}
+
+export interface SecretRecordSummary extends SecretRecord {
+  systemName: string | null
+  ownerName: string
+  updatedByName: string
+  /** due_soon = within 14 days. */
+  dueState: DueState
+  /** Days until nextDueAt; negative when overdue. */
+  daysLeft: number
+}
+
+export interface SecretRecordInput {
+  name: string
+  location: string
+  systemId: string | null
+  owner: string
+  lastRotatedAt: ISODate
+  rotationDays: number
+  notes: string
+}
+
+export type ChangeSource = 'github_pr' | 'deploy' | 'manual'
+/** Emergency changes need a review note within 2 days of deployment. */
+export type ChangeReviewState = 'not_required' | 'pending' | 'overdue' | 'done'
+
+export interface Change extends BaseEntity {
+  /** "CHG-001" */
+  ref: string
+  source: ChangeSource
+  externalUrl: string | null
+  systemId: string
+  summary: string
+  /** null for an emergency change approved after the fact. */
+  approver: string | null
+  deployedAt: ISODateTime
+  rollbackPlan: string
+  emergency: boolean
+  reviewNote: string | null
+  reviewedAt: ISODateTime | null
+  reviewedBy: string | null
+}
+
+export interface ChangeSummary extends Change {
+  systemName: string
+  approverName: string | null
+  updatedByName: string
+  reviewedByName: string | null
+  reviewState: ChangeReviewState
+  /** deployedAt + 48 hours, for emergency changes. */
+  reviewDueAt: ISODateTime | null
+}
+
+export interface ChangeInput {
+  source: ChangeSource
+  externalUrl: string | null
+  systemId: string
+  summary: string
+  approver: string | null
+  deployedAt: ISODateTime
+  rollbackPlan: string
+  emergency: boolean
+}
+
+export type DecisionStatus = 'proposed' | 'accepted' | 'superseded'
+
+/** An architecture decision record (ADR). */
+export interface Decision extends BaseEntity {
+  /** "ADR-003" */
+  ref: string
+  title: string
+  context: string
+  decision: string
+  consequences: string
+  status: DecisionStatus
+  decidedBy: string
+  decidedAt: ISODate
+  systemIds: string[]
+  /** The decision that replaced this one. */
+  supersededBy: string | null
+  /** The decision this one replaces. */
+  supersedes: string | null
+}
+
+export interface DecisionSummary extends Decision {
+  decidedByName: string
+  updatedByName: string
+  supersededByRef: string | null
+  supersedesRef: string | null
+}
+
+export interface DecisionInput {
+  title: string
+  context: string
+  decision: string
+  consequences: string
+  status: Exclude<DecisionStatus, 'superseded'>
+  decidedBy: string
+  decidedAt: ISODate
+  systemIds: string[]
+}
+
+// ---------------------------------------------------------------------------
+// Evidence (items arrive from security in M5; the Evidence module is M6)
+// ---------------------------------------------------------------------------
+
+export type EvidenceSource = 'connector' | 'upload' | 'manual'
+export type EvidenceResult = 'pass' | 'fail' | 'info'
+
+export interface Evidence extends BaseEntity {
+  controlId: string
+  source: EvidenceSource
+  connectorId: string | null
+  collectedAt: ISODateTime
+  result: EvidenceResult
+  summary: string
+  fileId: string | null
+  /** The record this evidence was generated from, if any. */
+  origin: { type: 'access_review'; id: string; label: string } | null
+}
+
+export interface EvidenceItem extends Evidence {
+  collectedByName: string | null
+  file: FileRef | null
+  /** App path of the origin record. */
+  originHref: string | null
 }

@@ -90,6 +90,9 @@ function useWrite<TVars, TRes>(
         qc.setQueryData(qk.privacy.detail(org, resource, String(data.id)), data)
       }
       void qc.invalidateQueries({ queryKey: qk.privacy.all(org) })
+      // Risks raised from an incident live in the security register, and the dashboard counts both.
+      void qc.invalidateQueries({ queryKey: qk.security.all(org) })
+      void qc.invalidateQueries({ queryKey: qk.overview(org) })
       void qc.invalidateQueries({ queryKey: qk.notifications(org) })
       void qc.invalidateQueries({ queryKey: [org, 'audit-events'] })
     },

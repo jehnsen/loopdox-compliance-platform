@@ -302,10 +302,10 @@ describe('incidents: notices, sign-off and notification', () => {
       incidentId: 'inc_2026_0003',
     })
     expect(res.status).toBe(201)
-    expect(res.body.ref).toBe('RISK-001')
+    expect(res.body.ref).toBe('RISK-013')
     const links = await call<LinksResponse>(t.dpo, 'GET', '/links?type=incident&id=inc_2026_0003')
     expect(links.body.groups.find((g) => g.type === 'risk')?.items.map((i) => i.ref)).toEqual([
-      'RISK-001',
+      'RISK-013',
     ])
   })
 })

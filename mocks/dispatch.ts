@@ -1,10 +1,14 @@
 import { verifyMockToken } from '@/mocks/auth'
+import { accessRoutes } from '@/mocks/handlers/access'
 import { agreementRoutes } from '@/mocks/handlers/agreements'
 import { auditEventRoutes } from '@/mocks/handlers/audit-events'
 import { authRoutes } from '@/mocks/handlers/auth'
+import { changeRoutes } from '@/mocks/handlers/changes'
 import { controlRoutes } from '@/mocks/handlers/controls'
+import { decisionRoutes } from '@/mocks/handlers/decisions'
 import { documentRoutes } from '@/mocks/handlers/documents'
 import { dsrRoutes } from '@/mocks/handlers/dsrs'
+import { evidenceRoutes } from '@/mocks/handlers/evidence'
 import { fileRoutes } from '@/mocks/handlers/files'
 import { incidentRoutes } from '@/mocks/handlers/incidents'
 import { linkRoutes } from '@/mocks/handlers/links'
@@ -15,7 +19,10 @@ import { overviewRoutes } from '@/mocks/handlers/overview'
 import { piaRoutes } from '@/mocks/handlers/pias'
 import { processingRoutes } from '@/mocks/handlers/processing'
 import { registrationRoutes } from '@/mocks/handlers/registrations'
+import { riskRoutes } from '@/mocks/handlers/risks'
 import { searchRoutes } from '@/mocks/handlers/search'
+import { secretRoutes } from '@/mocks/handlers/secrets'
+import { systemRoutes } from '@/mocks/handlers/systems'
 import { apiError, HttpError } from '@/mocks/http'
 import { compile, match, resolveOrgCtx, type BaseCtx, type UserCtx } from '@/mocks/router'
 import { getDb } from '@/mocks/store'
@@ -38,6 +45,13 @@ const routes = [
   ...incidentRoutes,
   ...agreementRoutes,
   ...registrationRoutes,
+  ...systemRoutes,
+  ...accessRoutes,
+  ...secretRoutes,
+  ...changeRoutes,
+  ...riskRoutes,
+  ...decisionRoutes,
+  ...evidenceRoutes,
 ].map(compile)
 
 /** "150-400" (default) → random latency in that range; "0" disables. */

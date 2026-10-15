@@ -2,6 +2,7 @@ import type { BaseEntity, RecordRef, RecordType } from '@/lib/api/types'
 import { hasFeature } from '@/lib/entitlements'
 import { RECORD_FEATURES, recordHref } from '@/lib/links'
 import { DSR_TYPE_LABELS } from '@/lib/privacy'
+import { ACCESS_LEVEL_LABELS } from '@/lib/security'
 import { visibleDocs } from '@/mocks/handlers/documents'
 import { canSeePrivacy } from '@/mocks/privacy'
 import type { OrgCtx } from '@/mocks/router'
@@ -43,12 +44,14 @@ const entry = (
   title: string,
   status: string | null,
   text = '',
+  /** For records without a page of their own: the list page, filtered to this record. */
+  href = recordHref(ctx.org.slug, type, r.id),
 ): RecordEntry => ({
   type,
   id: r.id,
   ref,
   title,
-  href: recordHref(ctx.org.slug, type, r.id),
+  href,
   status,
   text,
 })
@@ -114,7 +117,7 @@ export const RECORDS: Record<RecordType, RecordSource> = {
     visible: (ctx) =>
       ctx.can('security.read') || ctx.can('privacy.read')
         ? inOrg(ctx, ctx.db.systems).map((s) =>
-            entry(ctx, 'system', s, null, s.name, null, s.provider),
+            entry(ctx, 'system', s, s.ref, s.name, null, `${s.provider} ${s.hosting} ${s.notes}`),
           )
         : [],
     stored: finder((ctx) => ctx.db.systems),
@@ -125,6 +128,93 @@ export const RECORDS: Record<RecordType, RecordSource> = {
         ? inOrg(ctx, ctx.db.risks).map((r) => entry(ctx, 'risk', r, r.ref, r.title, r.status))
         : [],
     stored: finder((ctx) => ctx.db.risks),
+  },
+  access_grant: {
+    visible: (ctx) =>
+      ctx.can('security.read')
+        ? inOrg(ctx, ctx.db.accessGrants)
+            .filter((g) => g.status === 'active')
+            .map((g) => {
+              const system = ctx.db.systems.find((s) => s.id === g.systemId)
+              const person =
+                g.externalName ??
+                ctx.db.users.find((u) => u.id === g.userId)?.name ??
+                'Former member'
+              return entry(
+                ctx,
+                'access_grant',
+                g,
+                null,
+                `${person}: ${ACCESS_LEVEL_LABELS[g.level]} on ${system?.name ?? 'a system'}`,
+                null,
+                '',
+                `/${ctx.org.slug}/security/access?system=${g.systemId}`,
+              )
+            })
+        : [],
+    stored: finder((ctx) => ctx.db.accessGrants),
+  },
+  secret_record: {
+    visible: (ctx) =>
+      ctx.can('security.read')
+        ? inOrg(ctx, ctx.db.secrets).map((x) =>
+            entry(
+              ctx,
+              'secret_record',
+              x,
+              x.ref,
+              x.name,
+              null,
+              x.location,
+              `/${ctx.org.slug}/security/secrets?q=${x.ref}`,
+            ),
+          )
+        : [],
+    stored: finder((ctx) => ctx.db.secrets),
+  },
+  change: {
+    visible: (ctx) =>
+      ctx.can('security.read')
+        ? inOrg(ctx, ctx.db.changes).map((c) =>
+            entry(
+              ctx,
+              'change',
+              c,
+              c.ref,
+              c.summary,
+              null,
+              c.rollbackPlan,
+              `/${ctx.org.slug}/security/changes?q=${c.ref}`,
+            ),
+          )
+        : [],
+    stored: finder((ctx) => ctx.db.changes),
+  },
+  decision: {
+    visible: (ctx) =>
+      ctx.can('security.read')
+        ? inOrg(ctx, ctx.db.decisions).map((d) =>
+            entry(
+              ctx,
+              'decision',
+              d,
+              d.ref,
+              d.title,
+              d.status,
+              `${d.context} ${d.decision} ${d.consequences}`,
+            ),
+          )
+        : [],
+    stored: finder((ctx) => ctx.db.decisions),
+  },
+  control: {
+    visible: (ctx) =>
+      ctx.can('evidence.read')
+        ? inOrg(ctx, ctx.db.controls).map((c) =>
+            entry(ctx, 'control', c, c.reference, c.title, c.status, c.description),
+          )
+        : [],
+    stored: finder((ctx) => ctx.db.controls),
   },
 }
 

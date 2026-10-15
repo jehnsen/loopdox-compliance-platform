@@ -11,20 +11,25 @@ test('M4 acceptance: every Needs attention item opens its record and the counts 
   page,
 }) => {
   await signInAs(page, USERS.jehnsen, '/3rdloop')
-  await expect(page.getByTestId('attention-total')).toHaveText('5')
-  await expect(items(page)).toHaveCount(5)
+  await expect(page.getByTestId('attention-total')).toHaveText('8')
+  await expect(items(page)).toHaveCount(8)
 
-  // Ranked: breach, request, approval, overdue review, agreement.
+  // Ranked by risk class: breach, request, approval, rotations, access review, review, agreement.
   const kinds = await items(page).evaluateAll((els) => els.map((e) => e.getAttribute('data-kind')))
   expect(kinds).toEqual([
     'breach_deadline',
     'dsr_due',
     'policy_approval',
+    'secret_rotation',
+    'secret_rotation',
+    'access_review',
     'review_overdue',
     'agreement_renewal',
   ])
-  for (const kind of kinds) {
-    await expect(page.getByTestId(`attention-count-${kind}`)).toContainText('1')
+  for (const kind of new Set(kinds)) {
+    await expect(page.getByTestId(`attention-count-${kind}`)).toContainText(
+      kind === 'secret_rotation' ? '2' : '1',
+    )
   }
 
   // The breach row carries a live countdown.
@@ -36,6 +41,9 @@ test('M4 acceptance: every Needs attention item opens its record and the counts 
     { path: /\/privacy\/incidents\/inc_/, heading: /INC-\d{4}-0003/ },
     { path: /\/privacy\/requests\/dsr_/, heading: /DSR-\d{4}-0012/ },
     { path: /\/policies\/doc_itd_007/, heading: /ITD-007/ },
+    { path: /\/security\/secrets\?q=SCR-005/, heading: /SCR-005/ },
+    { path: /\/security\/secrets\?q=SCR-002/, heading: /SCR-002/ },
+    { path: /\/security\/access-reviews\/ar_/, heading: /AR-002/ },
     { path: /\/policies\/doc_itd_013/, heading: /ITD-013/ },
     { path: /\/privacy\/agreements\/agr_001/, heading: /AGR-001/ },
   ]
@@ -44,7 +52,7 @@ test('M4 acceptance: every Needs attention item opens its record and the counts 
     await expect(page).toHaveURL(e.path)
     await expect(page.getByRole('main')).toContainText(e.heading)
     await page.goto('/3rdloop')
-    await expect(items(page)).toHaveCount(5)
+    await expect(items(page)).toHaveCount(8)
   }
 })
 

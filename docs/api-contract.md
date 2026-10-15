@@ -597,3 +597,108 @@ The Overview dashboard in one call. Any active member may call it; each block is
 - Group order is fixed: `document`, `processing_activity`, `pia`, `dsr`, `incident`, `agreement`, `system`, `secret_record`, `change`, `risk`, `decision`, `control`, `evidence`, `ai_use_case`.
 - New searchable types: `system` and `risk` (plans with Security; visible to `security.read` or `privacy.read`), and `control` (plans with Evidence, `evidence.read`: reference, title, framework and description; links to `/:org/evidence/controls/:id`). Evidence items join in M6.
 - DSRs still match by reference and type only. Requester details never appear.
+
+## Security — M5
+
+Every endpoint needs the **Security** plan (Pro and above; Starter gets 403 `feature_not_in_plan`). Reads need `security.read` (owner, admin, DPO, CTO, approver, auditor). Writes need `security.edit` (owner, admin, CTO). Lists follow the shared list conventions (`page`, `pageSize`, `sort`, `q`, filters). Updates send `ifVersion` and return 409 on a mismatch.
+
+### Display references
+
+`SYS-001` systems, `AR-001` access reviews, `SCR-001` secret records, `CHG-001` changes, `RISK-001` risks, `ADR-001` decisions: per organisation, next number = highest + 1. Access grants have no display ID. `GET …/:id` also accepts the display ID.
+
+### Systems
+
+| Endpoint              | Notes                                                                                                                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /systems`        | → `ListResponse<SystemSummary>` (`ownerName`, `updatedByName`, `grantCount` = active grants, `secretCount`). `q` searches ref, name, provider, hosting, notes. Filters: `type`, `classification`, `personalData`. Default sort `name`. |
+| `POST /systems`       | `SystemInput` → 201 `SystemSummary`. `owner` must be an active, non-auditor member.                                                                                                                                                    |
+| `GET /systems/:id`    | `SystemSummary`.                                                                                                                                                                                                                       |
+| `PATCH /systems/:id`  | `SystemInput` + `ifVersion`.                                                                                                                                                                                                           |
+| `DELETE /systems/:id` | 204. **422** while anything still points at it: active access grants, secret records, changes, decisions, processing records or incidents. The message lists what.                                                                     |
+
+### Access grants
+
+`AccessGrant`: `systemId`, `userId` **or** `externalName` (exactly one), `level` (`owner | admin | write | read`), `approvedBy`, `grantedAt`, `lastReviewedAt`, `status` (`active | revoked`), `revokedAt`, `notes`. `AccessGrantSummary` adds `systemName`, `systemRef`, `personName`, `personKey` (user ID, or `ext:` + lower-cased name), `approvedByName`.
+
+| Endpoint                         | Notes                                                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /access-grants`             | Active grants unless `status=revoked` or `status=all`. Filters: `system`, `person` (a `personKey`), `level`, `external` (`true                                | false`). `q`searches person, system, notes. Default sort`systemName`. |
+| `POST /access-grants`            | `AccessGrantInput` → 201. 422 when the person already has an active grant on that system (field `userId`). 400 unless `userId` xor `externalName`.            |
+| `PATCH /access-grants/:id`       | Changes `level`, `approvedBy`, `grantedAt`, `notes` (+ `ifVersion`). 422 if the system or person differs: revoke and add a new grant. 422 on a revoked grant. |
+| `POST /access-grants/:id/revoke` | `{ ifVersion }` → `AccessGrantSummary` with `status: "revoked"`. The grant stays on record. 422 if already revoked.                                           |
+
+### Access reviews
+
+`AccessReview`: `ref`, `period` (`2026-Q4`), `dueAt` (last day of the period), `systemIds`, `reviewer`, `items[]`, `status` (`in_progress | signed_off`), `signedOffAt`, `signedOffBy`, `evidenceId`. Each item snapshots the grant when the review starts: `grantId`, `systemId`, `systemName`, `personName`, `level`, plus `decision` (`keep | revoke | change | null`), `note`, `newLevel`, `decidedBy`, `decidedAt`. `AccessReviewSummary` adds `reviewerName`, `signedOffByName`, `systemNames`, `decided`, `total`, `counts` per decision, `dueState`, `daysLeft` and the `evidence` item once signed off.
+
+| Endpoint                                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /access-reviews`, `GET …/:id`        | Filter `status`. Default sort `-period`.                                                                                                                                                                                                                                                                                                                                                                              |
+| `POST /access-reviews`                    | `{ period, systemIds[], reviewer }` → 201. Items are the active grants of those systems. 422 when a review for that period is already in progress, or the systems have no active grants.                                                                                                                                                                                                                              |
+| `POST /access-reviews/:id/items/:grantId` | `{ ifVersion, decision, note?, newLevel? }`. `decision: null` clears. 400 on `note` when revoking without a reason; 400 on `newLevel` when changing without one. 422 once signed off.                                                                                                                                                                                                                                 |
+| `POST /access-reviews/:id/keep-all`       | `{ ifVersion, grantIds? }` marks every undecided item (or just those listed) as keep.                                                                                                                                                                                                                                                                                                                                 |
+| `POST /access-reviews/:id/sign-off`       | `{ ifVersion }`. 422 while any item is undecided. **Applies the decisions:** revoked grants become `revoked`, changed grants take `newLevel`, every reviewed active grant gets `lastReviewedAt` = today. **Creates one `Evidence` item** (`source: "manual"`, `result: "pass"`) on the control with reference **A.5.15 Access control**, with `origin` pointing back at the review. Audit `access_review.signed_off`. |
+
+### Secret records
+
+`SecretRecord`: `ref`, `name`, `location` ("Azure Key Vault: kv-prod"), `systemId`, `owner`, `lastRotatedAt`, `rotationDays` (1–730), `nextDueAt` (= `lastRotatedAt` + `rotationDays`, stored), `notes`. Summary adds `systemName`, `ownerName`, `dueState` (`due_soon` = within 14 days), `daysLeft`.
+
+**LoopDox stores where a secret lives, never its value.** Create and update refuse a body that carries `value`, `secret`, `password`, `token`, `apiKey` or `key`: **400** with that field in `fields`.
+
+| Endpoint                                       | Notes                                                                                                     |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /secret-records`                          | Default sort `nextDueAt` (overdue first). Filters: `system`, `due` (`overdue                              | due_soon | ok`), `owner`. |
+| `POST`, `GET/PATCH/DELETE /secret-records/:id` | As for other registers.                                                                                   |
+| `POST /secret-records/:id/mark-rotated`        | `{ ifVersion, rotatedAt? }`: `lastRotatedAt` = today (or the earlier date given), `nextDueAt` recomputed. |
+
+### Changes
+
+`Change`: `ref`, `source` (`github_pr | deploy | manual`), `externalUrl`, `systemId`, `summary`, `approver` (null only for an emergency change), `deployedAt`, `rollbackPlan`, `emergency`, `reviewNote`, `reviewedAt`, `reviewedBy`. Summary adds `systemName`, `approverName`, `reviewedByName`, `reviewState` (`not_required | pending | overdue | done`) and `reviewDueAt` (= `deployedAt` + 48 hours, emergency only). `deployedAt` can't be in the future (5 minutes' slack).
+
+| Endpoint                                  | Notes                                                                                                                                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /changes`                            | Default sort `-deployedAt`. Filters: `source`, `system`, `emergency`, `review`.                                                                                              |
+| `POST /changes`, `GET/PATCH /changes/:id` | There is no delete: the log is a record. 400 on `approver` unless emergency.                                                                                                 |
+| `POST /changes/:id/review`                | `{ ifVersion, note }` (at least 10 characters). 422 unless the change is an emergency change not yet reviewed. Audit `change.reviewed` notes `late` when after the 48 hours. |
+
+### Risks
+
+`Risk` gains `residualLikelihood` and `residualImpact` (both or neither); `residualScore` is derived. `RiskSummary` adds `ownerName`, `reviewState` (`due_soon` within 30 days, `overdue`; null when closed or fine) and `daysToReview`.
+
+| Endpoint               | Notes                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /risks`           | Default sort `-inherentScore`. Filters: `status`, `treatment`, `review`, `band` (`low                                                                                                                                                                                                                                                                                        | medium | high | critical`), and the heat-map filter `cell=3x5`(likelihood × impact).`basis=residual`makes`cell`and`band` use the residual rating (default inherent). |
+| `POST /risks`          | The full `RiskInput`, **or** the short M3 form `{ title, description, likelihood, impact, owner, incidentId? }`; omitted fields default (`treatment: mitigate`, `status: open`, `reviewAt` = today + 3 months). `documentIds` must be policies the caller can read, `controlIds` controls in the org (400). With `incidentId` the risk is added to the incident's `riskIds`. |
+| `GET/PATCH /risks/:id` | `PATCH` takes the full `RiskInput` + `ifVersion`.                                                                                                                                                                                                                                                                                                                            |
+| `DELETE /risks/:id`    | 204. Removes the risk from any incident's `riskIds`.                                                                                                                                                                                                                                                                                                                         |
+
+### Decisions (ADRs)
+
+`Decision`: `ref`, `title`, `context`, `decision`, `consequences`, `status` (`proposed | accepted | superseded`), `decidedBy`, `decidedAt`, `systemIds`, `supersededBy`, `supersedes`. Summary adds `decidedByName`, `supersededByRef`, `supersedesRef`.
+
+| Endpoint                        | Notes                                                                                                                                                                                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /decisions`                | Default sort `-ref`. Filters: `status`, `system`. `q` searches ref, title, context, decision and consequences.                                                                                                                                  |
+| `POST /decisions`               | `DecisionInput` (`status: proposed                                                                                                                                                                                                              | accepted`) → 201. |
+| `GET /decisions/:id`            |                                                                                                                                                                                                                                                 |
+| `PATCH /decisions/:id`          | + `ifVersion`. 422 on a superseded decision.                                                                                                                                                                                                    |
+| `DELETE /decisions/:id`         | 204. **422 unless `proposed`**: accepted decisions are superseded, not deleted.                                                                                                                                                                 |
+| `POST /decisions/:id/supersede` | The new decision as the body (`DecisionInput` fields + the old decision's `ifVersion`). 201 with the new, **accepted** decision (`supersedes` set). The old one becomes `superseded` with `supersededBy`. 422 unless the old one is `accepted`. |
+
+### Controls and evidence
+
+`GET /controls/:id/evidence` — `evidence.read`, Evidence plan. → `ListResponse<EvidenceItem>`, default sort `-collectedAt`; filters `result`, `source`. `Evidence`: `controlId`, `source` (`connector | upload | manual`), `connectorId`, `collectedAt`, `result` (`pass | fail | info`), `summary`, `fileId`, `origin` (`{ type: "access_review", id, label }` or null). `EvidenceItem` adds `collectedByName`, `file` and `originHref`. Uploads, connectors and the rest of the Evidence module are M6; M5 creates items from access review sign-off only.
+
+### Links and search (M5)
+
+`RecordType` gains `access_grant`, `secret_record`, `change`, `decision` and `control`. New relations (stored on the first record): access grant, secret record and change → `system` (single, **managed** by their own forms); decision → `system`; risk → `document` and → `control`. A relation is edited with `security.edit` when its owner is a security record and `privacy.edit` otherwise, and only when the owner's type is in the plan (`POST` and `DELETE /links` are no longer limited to the Privacy plan). `GET /links?type=system&id=…` therefore returns groups for access grants, secrets, changes and decisions as well as processing records and incidents.
+
+`GET /search` adds `system` (now with its `SYS-` ref, provider and hosting), `risk`, `secret_record`, `change` and `decision`. Secret records match on name, ref and location, never a value. Grants aren't searched.
+
+### Dashboard (M5)
+
+`GET /overview` gains attention kinds `secret_rotation` (a secret past `nextDueAt`; always `tone: "bad"`) and `access_review` (a review `in_progress`; `tone: "bad"` once its period has ended; `detail` reads "6 of 11 decided · Due in 77 days").
+
+### Audit actions (M5)
+
+`system.created|updated|deleted`, `access_grant.created|updated|level_changed|revoked`, `access_review.created|signed_off`, `secret.created|updated|rotated|deleted`, `change.logged|updated|reviewed`, `risk.created|updated|closed|deleted`, `decision.created|accepted|updated|superseded|deleted`.

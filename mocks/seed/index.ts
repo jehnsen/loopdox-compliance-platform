@@ -5,11 +5,12 @@ import type { MockDB } from '@/mocks/store'
 import { seedControls } from '@/mocks/seed/controls'
 import { seedDocuments } from '@/mocks/seed/documents'
 import { seedPrivacy } from '@/mocks/seed/privacy'
+import { seedSecurity } from '@/mocks/seed/security'
 import { seedSystems } from '@/mocks/seed/systems'
 import { seedInvites, seedMemberships, seedOrgs, seedUsers } from '@/mocks/seed/tenants'
 
 /** Bump when seed data changes shape; a persisted .mock-db.json with an older version is reseeded. */
-export const SEED_VERSION = 3
+export const SEED_VERSION = 4
 
 const HOUR = 3_600_000
 
@@ -111,6 +112,8 @@ export function seedDatabase(now: Date): MockDB {
   }
 
   const privacy = seedPrivacy(now)
+  const systems = seedSystems(now)
+  const security = seedSecurity(now, systems, controls)
 
   const db: MockDB = {
     meta: { seedVersion: SEED_VERSION, seededAt: now.toISOString() },
@@ -120,7 +123,7 @@ export function seedDatabase(now: Date): MockDB {
     invites: seedInvites(now),
     resetTokens: [],
     notifications,
-    auditEvents: [...auditEvents, ...docs.audit, ...privacy.audit],
+    auditEvents: [...auditEvents, ...docs.audit, ...privacy.audit, ...security.audit],
     usage: [
       { orgId: 'org_3rdloop', month, askQuestions: 412 },
       { orgId: 'org_sample_clinic', month, askQuestions: 38 },
@@ -130,8 +133,14 @@ export function seedDatabase(now: Date): MockDB {
     workflowEvents: docs.workflow,
     acknowledgements: docs.acknowledgements,
     controls,
-    systems: seedSystems(now),
-    risks: [],
+    systems,
+    risks: security.risks,
+    accessGrants: security.accessGrants,
+    accessReviews: security.accessReviews,
+    secrets: security.secrets,
+    changes: security.changes,
+    decisions: security.decisions,
+    evidence: security.evidence,
     files: privacy.files,
     processingActivities: privacy.processingActivities,
     pias: privacy.pias,

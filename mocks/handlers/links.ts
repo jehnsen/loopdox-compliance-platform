@@ -1,5 +1,11 @@
 import type { LinkGroup, LinksResponse, RecordType } from '@/lib/api/types'
-import { findRelation, RECORD_LABELS, relationsFor, type LinkRelation } from '@/lib/links'
+import {
+  findRelation,
+  linkPermission,
+  RECORD_LABELS,
+  relationsFor,
+  type LinkRelation,
+} from '@/lib/links'
 import { linkSchema, recordTypeSchema } from '@/lib/schemas/privacy'
 import { audit } from '@/mocks/audit'
 import { touch } from '@/mocks/helpers'
@@ -10,9 +16,11 @@ import { orgRoute, type OrgCtx, type RouteDef } from '@/mocks/router'
 import { commit } from '@/mocks/store'
 import { unprocessable } from '@/mocks/privacy'
 
-/** Every relation owner today is a privacy record, edited with privacy.edit. */
+/** Privacy records are linked with privacy.edit, security records with security.edit. */
 function canEditLinks(ctx: OrgCtx, relation: LinkRelation): boolean {
-  return !relation.managed && ctx.can('privacy.edit') && typeInPlan(ctx, relation.owner)
+  return (
+    !relation.managed && ctx.can(linkPermission(relation.owner)) && typeInPlan(ctx, relation.owner)
+  )
 }
 
 function readType(ctx: OrgCtx, name: string): RecordType {
@@ -78,7 +86,8 @@ function resolveLink(
   if (!found) throw unprocessable('These two kinds of record can’t be linked.')
   const { relation, ownerIsA } = found
   if (relation.managed) throw unprocessable('Change this link from the record’s own form.')
-  if (!ctx.can('privacy.edit')) throw forbidden()
+  if (!ctx.can(linkPermission(relation.owner)) || !typeInPlan(ctx, relation.owner))
+    throw forbidden()
   const ownerSide = ownerIsA ? input.from : input.to
   const targetSide = ownerIsA ? input.to : input.from
   const owner = visibleRecord(ctx, ownerSide.type, ownerSide.id)
@@ -139,7 +148,7 @@ export const linkRoutes: RouteDef[] = [
     return json({ items })
   }),
 
-  orgRoute('POST', '/links', { feature: 'privacy' }, async (ctx) => {
+  orgRoute('POST', '/links', {}, async (ctx) => {
     const input = parse(linkSchema, await ctx.json())
     const { relation, owner, ownerType, targetType, targetId } = resolveLink(ctx, input)
     const ids = storedIds(owner, relation)
@@ -157,7 +166,7 @@ export const linkRoutes: RouteDef[] = [
     return noContent()
   }),
 
-  orgRoute('DELETE', '/links', { feature: 'privacy' }, (ctx) => {
+  orgRoute('DELETE', '/links', {}, (ctx) => {
     const input = parse(linkSchema, {
       from: { type: ctx.query.get('fromType'), id: ctx.query.get('fromId') },
       to: { type: ctx.query.get('toType'), id: ctx.query.get('toId') },
@@ -189,11 +198,14 @@ for (const type of [
   'agreement',
   'system',
   'risk',
+  'secret_record',
+  'change',
+  'decision',
 ] as const) {
   searchSources.push({
     type,
     label: RECORD_LABELS[type].many,
     items: (ctx) =>
-      visibleRecords(ctx, type).map(({ status: _status, ...r }) => ({ ...r, snippet: null })),
+      visibleRecords(ctx, type).map(({ status: _status, ...r }) => ({ ...r, type, snippet: null })),
   })
 }

@@ -1,13 +1,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type {
+  AccessGrant,
+  AccessReview,
   Acknowledgement,
   Agreement,
+  Change,
   AuditEvent,
   Control,
+  Decision,
   Document,
   Dsr,
   DsrEvent,
+  Evidence,
   FileRef,
   Incident,
   IncidentNotices,
@@ -18,6 +23,7 @@ import type {
   Registration,
   Risk,
   Role,
+  SecretRecord,
   System,
   TrainingRecord,
   User,
@@ -84,6 +90,12 @@ export interface MockDB {
   controls: Control[]
   systems: System[]
   risks: Risk[]
+  accessGrants: AccessGrant[]
+  accessReviews: AccessReview[]
+  secrets: SecretRecord[]
+  changes: Change[]
+  decisions: Decision[]
+  evidence: Evidence[]
   files: MockFile[]
   processingActivities: ProcessingActivity[]
   pias: Pia[]

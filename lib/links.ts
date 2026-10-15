@@ -1,4 +1,4 @@
-import type { RecordType } from '@/lib/api/types'
+import type { Permission, RecordType } from '@/lib/api/types'
 import type { Feature } from '@/lib/entitlements'
 
 /**
@@ -33,7 +33,29 @@ export const LINK_RELATIONS: readonly LinkRelation[] = [
   { owner: 'incident', field: 'systemIds', target: 'system' },
   { owner: 'incident', field: 'documentIds', target: 'document' },
   { owner: 'incident', field: 'riskIds', target: 'risk' },
+  // Security (M5). Grants, secrets and changes point at one system; ADRs at several.
+  { owner: 'access_grant', field: 'systemId', target: 'system', single: true, managed: true },
+  { owner: 'secret_record', field: 'systemId', target: 'system', single: true, managed: true },
+  { owner: 'change', field: 'systemId', target: 'system', single: true, managed: true },
+  { owner: 'decision', field: 'systemIds', target: 'system' },
+  { owner: 'risk', field: 'documentIds', target: 'document' },
+  { owner: 'risk', field: 'controlIds', target: 'control' },
 ]
+
+/** Permission needed to add or remove links stored on records of this type. */
+export function linkPermission(owner: RecordType): Permission {
+  switch (owner) {
+    case 'access_grant':
+    case 'secret_record':
+    case 'change':
+    case 'decision':
+    case 'risk':
+    case 'system':
+      return 'security.edit'
+    default:
+      return 'privacy.edit'
+  }
+}
 
 export const RECORD_LABELS: Record<RecordType, { one: string; many: string }> = {
   document: { one: 'Policy', many: 'Policies' },
@@ -44,6 +66,11 @@ export const RECORD_LABELS: Record<RecordType, { one: string; many: string }> = 
   agreement: { one: 'Agreement', many: 'Agreements' },
   system: { one: 'System', many: 'Systems' },
   risk: { one: 'Risk', many: 'Risks' },
+  access_grant: { one: 'Access grant', many: 'Access grants' },
+  secret_record: { one: 'Secret', many: 'Secrets' },
+  change: { one: 'Change', many: 'Changes' },
+  decision: { one: 'Decision', many: 'Decisions' },
+  control: { one: 'Control', many: 'Controls' },
 }
 
 /** Plan feature each record type belongs to; links to a type the plan lacks are hidden. */
@@ -56,6 +83,11 @@ export const RECORD_FEATURES: Record<RecordType, Feature> = {
   agreement: 'privacy',
   system: 'security',
   risk: 'security',
+  access_grant: 'security',
+  secret_record: 'security',
+  change: 'security',
+  decision: 'security',
+  control: 'evidence',
 }
 
 /** App path of a record's detail page. */
@@ -78,6 +110,16 @@ export function recordHref(org: string, type: RecordType, id: string): string {
       return `${base}/security/assets/${id}`
     case 'risk':
       return `${base}/security/risks/${id}`
+    case 'access_grant':
+      return `${base}/security/access`
+    case 'secret_record':
+      return `${base}/security/secrets`
+    case 'change':
+      return `${base}/security/changes`
+    case 'decision':
+      return `${base}/security/decisions/${id}`
+    case 'control':
+      return `${base}/evidence/controls/${id}`
   }
 }
 

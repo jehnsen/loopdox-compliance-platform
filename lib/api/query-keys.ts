@@ -20,6 +20,16 @@ export const qk = {
     nextId: (org: string) => [org, 'documents', 'next-id'] as const,
   },
   controls: (org: string, query: ListQuery) => [org, 'controls', query] as const,
+  control: (org: string, id: string) => [org, 'controls', 'detail', id] as const,
+  controlEvidence: (org: string, id: string) => [org, 'controls', 'evidence', id] as const,
+  /** Everything security-related lives under [org, 'security'] so one invalidation refreshes lists and details. */
+  security: {
+    all: (org: string) => [org, 'security'] as const,
+    list: (org: string, resource: string, query: ListQuery) =>
+      [org, 'security', resource, 'list', query] as const,
+    detail: (org: string, resource: string, id: string) =>
+      [org, 'security', resource, 'detail', id] as const,
+  },
   /** Everything privacy-related lives under [org, 'privacy'] so one invalidation refreshes lists, details and links. */
   privacy: {
     all: (org: string) => [org, 'privacy'] as const,

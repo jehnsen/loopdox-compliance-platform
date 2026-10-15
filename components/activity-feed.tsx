@@ -70,6 +70,38 @@ const ACTION_LABELS: Record<string, (d: Record<string, unknown>) => string> = {
   'registration.updated': (d) =>
     d.dpoName ? `changed the DPO on record to ${String(d.dpoName)}` : 'updated the registration',
   'registration.renewed': (d) => `recorded a renewal to ${String(d.renewsAt)}`,
+  // Security (M5)
+  'system.created': () => 'added this system',
+  'system.updated': () => 'updated the details',
+  'system.deleted': () => 'deleted this system',
+  'access_grant.created': () => 'added this access',
+  'access_grant.updated': () => 'updated this access',
+  'access_grant.level_changed': (d) => `changed the level to ${String(d.level)}`,
+  'access_grant.revoked': () => 'revoked this access',
+  'access_review.created': (d) => `started the review with ${String(d.grants)} grants`,
+  'access_review.signed_off': (d) =>
+    `signed off the review: ${String(d.kept)} kept, ${String(d.revoked)} revoked, ${String(d.changed)} changed`,
+  'secret.created': () => 'added this secret record',
+  'secret.updated': () => 'updated the record',
+  'secret.rotated': (d) => `marked it rotated; next rotation is due ${String(d.nextDueAt)}`,
+  'secret.deleted': () => 'deleted this record',
+  'change.logged': (d) => (d.emergency ? 'logged this emergency change' : 'logged this change'),
+  'change.updated': () => 'updated the change',
+  'change.reviewed': (d) =>
+    d.late ? 'recorded the review, after the 2-day deadline' : 'recorded the review',
+  'risk.created': (d) =>
+    d.incident ? `raised this risk from ${String(d.incident)}` : 'added this risk',
+  'risk.updated': () => 'updated the risk',
+  'risk.closed': () => 'closed this risk',
+  'risk.deleted': () => 'deleted this risk',
+  'decision.created': (d) =>
+    d.supersedes
+      ? `recorded this decision, replacing ${String(d.supersedes)}`
+      : 'recorded this decision',
+  'decision.accepted': () => 'accepted this decision',
+  'decision.updated': () => 'updated the decision',
+  'decision.superseded': (d) => `superseded it with ${String(d.by)}`,
+  'decision.deleted': () => 'deleted this proposal',
 }
 
 function linkLabel(d: Record<string, unknown>): string {

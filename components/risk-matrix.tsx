@@ -43,10 +43,16 @@ export function RiskMatrix({
   risks,
   caption = 'Risks by likelihood and impact',
   className,
+  selected = null,
+  onSelect,
 }: {
   risks: readonly { likelihood: Score; impact: Score }[]
   caption?: string
   className?: string
+  /** The highlighted cell, when the matrix filters a list. */
+  selected?: { likelihood: Score; impact: Score } | null
+  /** Makes cells with risks clickable: the heat map as a filter. Click again to clear. */
+  onSelect?: (cell: { likelihood: Score; impact: Score } | null) => void
 }) {
   const count = (l: Score, i: Score) =>
     risks.filter((r) => r.likelihood === l && r.impact === i).length
@@ -82,6 +88,7 @@ export function RiskMatrix({
               {SCORES.map((l) => {
                 const score = riskScore(l, i)
                 const n = count(l, i)
+                const isSelected = selected?.likelihood === l && selected.impact === i
                 return (
                   <td
                     key={l}
@@ -91,7 +98,24 @@ export function RiskMatrix({
                       n ? BAND_CLASSES[scoreBand(score)] : 'bg-surface-2 text-muted/70',
                     )}
                   >
-                    {n ? n : <span aria-label="none">·</span>}
+                    {n && onSelect ? (
+                      <button
+                        type="button"
+                        aria-pressed={isSelected}
+                        aria-label={`Likelihood ${l}, impact ${i}: ${n} ${n === 1 ? 'risk' : 'risks'}`}
+                        onClick={() => onSelect(isSelected ? null : { likelihood: l, impact: i })}
+                        className={cn(
+                          'size-full rounded-sm',
+                          isSelected && 'ring-2 ring-fg ring-offset-1 ring-offset-surface',
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ) : n ? (
+                      n
+                    ) : (
+                      <span aria-label="none">·</span>
+                    )}
                   </td>
                 )
               })}

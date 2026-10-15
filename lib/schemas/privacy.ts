@@ -308,6 +308,11 @@ export const recordTypeSchema = z.enum([
   'agreement',
   'system',
   'risk',
+  'access_grant',
+  'secret_record',
+  'change',
+  'decision',
+  'control',
 ])
 
 const recordPointer = z.object({ type: recordTypeSchema, id: z.string().min(1) })

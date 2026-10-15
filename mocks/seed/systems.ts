@@ -2,11 +2,12 @@ import type { System } from '@/lib/api/types'
 
 /**
  * The 10 systems for 3rdLoop. Seeded in M3 because processing records and incidents
- * link to them; the Systems register UI arrives in M5. Vendor names other than the
+ * link to them; the Systems register (M5) edits them. Vendor names other than the
  * connector providers are fictional.
  */
 export function seedSystems(now: Date): System[] {
   const at = new Date(now.getTime() - 380 * 86_400_000).toISOString()
+  let n = 0
   const s = (
     id: string,
     name: string,
@@ -25,6 +26,7 @@ export function seedSystems(now: Date): System[] {
     updatedBy: 'usr_jehnsen',
     version: 1,
     sample: true,
+    ref: `SYS-${String(++n).padStart(3, '0')}`,
     name,
     type,
     provider,

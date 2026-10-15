@@ -66,8 +66,11 @@ const overview = (token: string, org = '3rdloop') =>
 
 /** The API path behind an app href, so a test can open the record a dashboard row links to. */
 function apiPathOf(href: string): string {
-  const rest = href.replace(/^\/[^/]+\//, '')
+  const [pathname = '', query = ''] = href.split('?')
+  const rest = pathname.replace(/^\/[^/]+\//, '')
   const [a, b, c] = rest.split('/')
+  if (a === 'security' && b === 'secrets') return `/secret-records/${query.replace('q=', '')}`
+  if (a === 'security' && b === 'access-reviews') return `/access-reviews/${c}`
   if (a === 'policies') return `/documents/${b}`
   if (a === 'privacy' && b === 'incidents') return `/incidents/${c}`
   if (a === 'privacy' && b === 'requests') return `/dsrs/${c}`
@@ -76,7 +79,7 @@ function apiPathOf(href: string): string {
 }
 
 describe('overview: Needs attention matches the seed data', () => {
-  it('lists exactly the five seeded items, ranked by risk class', async () => {
+  it('lists exactly the eight seeded items, ranked by risk class', async () => {
     const year = todayInTz('Asia/Manila', NOW).slice(0, 4)
     const { status, body } = await overview(t.admin)
     expect(status).toBe(200)
@@ -84,14 +87,20 @@ describe('overview: Needs attention matches the seed data', () => {
       ['breach_deadline', `INC-${year}-0003`],
       ['dsr_due', `DSR-${year}-0012`],
       ['policy_approval', 'ITD-007'],
+      // Most overdue first: SCR-005 is 30 days late, SCR-002 is 20.
+      ['secret_rotation', 'SCR-005'],
+      ['secret_rotation', 'SCR-002'],
+      ['access_review', 'AR-002'],
       ['review_overdue', 'ITD-013'],
       ['agreement_renewal', 'AGR-001'],
     ])
-    expect(body.attention.total).toBe(5)
+    expect(body.attention.total).toBe(8)
     expect(body.attention.counts).toEqual({
       breach_deadline: 1,
       dsr_due: 1,
       policy_approval: 1,
+      secret_rotation: 2,
+      access_review: 1,
       review_overdue: 1,
       agreement_renewal: 1,
     })
@@ -126,6 +135,9 @@ describe('overview: Needs attention matches the seed data', () => {
       agreement_renewal: db.agreements.filter(
         (a) => a.orgId === org && a.renewsAt !== null && a.renewsAt <= monthOut,
       ).length,
+      secret_rotation: db.secrets.filter((x) => x.orgId === org && x.nextDueAt < today).length,
+      access_review: db.accessReviews.filter((r) => r.orgId === org && r.status === 'in_progress')
+        .length,
     }
     return overview(t.admin).then(({ body }) => {
       expect(body.attention.counts).toEqual(
@@ -188,7 +200,7 @@ describe('overview: Needs attention matches the seed data', () => {
     expect(approved.status).toBe(200)
     const { body } = await overview(t.admin)
     expect(body.attention.counts.policy_approval).toBeUndefined()
-    expect(body.attention.total).toBe(4)
+    expect(body.attention.total).toBe(7)
   })
 
   it('stops counting a breach once notification is ruled out', async () => {
