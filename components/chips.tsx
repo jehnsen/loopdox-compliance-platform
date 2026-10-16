@@ -47,7 +47,7 @@ export function PremiumBadge({
   return (
     <span
       className={cn(
-        'inline-flex h-4.5 items-center gap-1 rounded-sm border border-premium/40 px-1 text-2xs font-semibold tracking-[0.04em] text-premium uppercase',
+        'inline-flex h-4.5 items-center gap-1 rounded-sm border border-premium/30 bg-premium/8 px-1 text-2xs font-semibold tracking-[0.04em] text-premium uppercase',
         className,
       )}
     >

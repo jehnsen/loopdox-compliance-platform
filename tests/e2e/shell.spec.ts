@@ -120,14 +120,6 @@ test('notifications bell shows unread items and marks them read', async ({ page 
   await expect(page.getByRole('button', { name: 'Notifications', exact: true })).toBeVisible()
 })
 
-test('the sample data banner can be dismissed', async ({ page }) => {
-  await signInAs(page, USERS.staff)
-  const banner = page.getByTestId('sample-data-banner')
-  await expect(banner).toBeVisible()
-  await banner.getByRole('button', { name: 'Dismiss' }).click()
-  await expect(banner).toHaveCount(0)
-})
-
 test.describe('small screens', () => {
   test.use({ viewport: { width: 360, height: 740 } })
 

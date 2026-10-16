@@ -138,6 +138,7 @@ export function PiaListPage() {
         setParams={setParams}
         query={query}
         getRowId={(p) => p.id}
+        rowHref={(p) => privacyPaths.piaView(org, p.id)}
         searchPlaceholder="Search by ID, activity or scope"
         filters={
           <>

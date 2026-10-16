@@ -22,14 +22,14 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
-  description: 'Policies, privacy and security compliance for Philippine organisations.',
+  description: 'Policy, privacy, security and AI governance for Philippine organisations.',
   robots: { index: false, follow: false },
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f3f4f9' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f1220' },
+    { media: '(prefers-color-scheme: light)', color: '#f4f6f9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0f1a' },
   ],
 }
 

@@ -154,6 +154,7 @@ export function AgreementListPage() {
         setParams={setParams}
         query={query}
         getRowId={(a) => a.id}
+        rowHref={(a) => privacyPaths.agreementView(org, a.id)}
         searchPlaceholder="Search by ID or counterparty"
         rowClassName={(a) =>
           a.renewalState === 'overdue'

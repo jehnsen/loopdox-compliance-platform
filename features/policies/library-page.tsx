@@ -281,6 +281,7 @@ export function PolicyLibraryPage() {
             setParams={setParams}
             query={query}
             getRowId={(d) => d.id}
+            rowHref={(d) => policyPaths.view(org, d.id)}
             searchPlaceholder="Search by ID, title or owner"
             filters={filters}
             exportPath={orgPath(org, '/documents/export')}

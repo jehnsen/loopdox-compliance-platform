@@ -4,12 +4,13 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils/cn'
 
 export const buttonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4',
+  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-150 select-none disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4',
   {
     variants: {
       variant: {
-        primary: 'bg-accent text-accent-fg hover:bg-accent/90',
-        secondary: 'border border-line bg-surface text-fg hover:bg-surface-2',
+        primary: 'bg-accent text-accent-fg hover:bg-accent/90 active:bg-accent/85',
+        secondary:
+          'border border-line bg-surface text-fg hover:border-line-strong hover:bg-surface-2 active:bg-surface-2',
         ghost: 'text-fg hover:bg-surface-2',
         danger: 'bg-bad text-surface hover:bg-bad/90',
         'danger-outline': 'border border-bad/40 bg-surface text-bad hover:bg-bad-soft',

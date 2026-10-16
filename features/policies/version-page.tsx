@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { HistoryIcon, RotateCcwIcon } from 'lucide-react'
+import { FileClockIcon, HistoryIcon, RotateCcwIcon } from 'lucide-react'
 import { useDocument, useDocumentVersion, useRestoreVersion } from '@/lib/api/hooks/use-documents'
 import { isApiError } from '@/lib/api/client'
 import { useCan } from '@/lib/auth/can'
@@ -57,6 +57,7 @@ export function VersionPage({ id, version }: { id: string; version: number }) {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={ver.title}
+        icon={FileClockIcon}
         id={d.docId}
         version={version}
         status={isApproved ? <StatusPill status="approved" label="Approved version" /> : null}

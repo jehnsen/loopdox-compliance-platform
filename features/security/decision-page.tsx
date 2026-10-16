@@ -82,7 +82,7 @@ export function DecisionPage({ id }: { id: string }) {
               {d.status === 'proposed' ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="More actions">
+                    <Button variant="secondary" size="icon" aria-label="More actions">
                       <MoreHorizontalIcon />
                     </Button>
                   </DropdownMenuTrigger>

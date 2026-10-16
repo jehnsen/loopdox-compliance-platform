@@ -9,7 +9,8 @@ import {
   type RowData,
   type RowSelectionState,
 } from '@tanstack/react-table'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import {
   ArrowDownIcon,
@@ -97,6 +98,11 @@ export interface DataTableProps<T> {
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   rowClassName?: (row: T) => string | undefined
   /**
+   * Makes the whole row open this record on click. Keep a real link to the same
+   * place in one cell: it stays the keyboard and screen-reader target.
+   */
+  rowHref?: (row: T) => string
+  /**
    * Groups consecutive rows under a heading row (a framework, a status). Rows keep the
    * server's order, so the groups only make sense while the sort is the default one.
    */
@@ -124,6 +130,10 @@ function groupRows<T>(
   return groups
 }
 
+/** Clicks on these inside a row keep their own behaviour instead of opening the record. */
+const ROW_CLICK_IGNORE =
+  'a, button, input, label, select, textarea, [role="checkbox"], [role="menuitem"], [role="combobox"], [data-row-click-ignore]'
+
 function SortIcon({ dir }: { dir: 'asc' | 'desc' | null }) {
   if (dir === 'asc') return <ArrowUpIcon className="size-3.5" aria-hidden="true" />
   if (dir === 'desc') return <ArrowDownIcon className="size-3.5" aria-hidden="true" />
@@ -150,8 +160,10 @@ export function DataTable<T>({
   exportPath,
   bulkActions,
   rowClassName,
+  rowHref,
   groupBy,
 }: DataTableProps<T>) {
+  const router = useRouter()
   const { density, setDensity } = useUiPrefs()
   const [search, setSearch] = useState(params.q)
   const debounced = useDebouncedValue(search, 300)
@@ -240,6 +252,18 @@ export function DataTable<T>({
     } finally {
       setExporting(false)
     }
+  }
+
+  /** Row click → record, unless the click was meant for something inside the row. */
+  const onRowClick = (e: MouseEvent<HTMLTableRowElement>, href: string) => {
+    if (e.defaultPrevented || (e.button !== 0 && e.button !== 1)) return
+    const target = e.target as HTMLElement
+    // React events bubble out of portals (menus, dialogs) opened from the row.
+    if (!e.currentTarget.contains(target)) return
+    if (target.closest(ROW_CLICK_IGNORE)) return
+    if (window.getSelection()?.toString()) return
+    if (e.button === 1 || e.metaKey || e.ctrlKey) window.open(href, '_blank', 'noopener')
+    else router.push(href)
   }
 
   const hideable = table.getAllLeafColumns().filter((c) => !c.columnDef.meta?.alwaysVisible)
@@ -369,7 +393,7 @@ export function DataTable<T>({
             aria-label={label}
             aria-busy={isLoading || isFetching}
           >
-            <thead className="bg-surface-2 text-left">
+            <thead className="bg-surface-2/60 text-left">
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
                   {hg.headers.map((header) => {
@@ -383,7 +407,7 @@ export function DataTable<T>({
                           dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined
                         }
                         className={cn(
-                          'h-9 border-b border-line px-3 text-xs font-semibold whitespace-nowrap text-muted',
+                          'h-9 border-b border-line px-3 text-2xs font-semibold tracking-[0.06em] whitespace-nowrap text-muted uppercase',
                           meta?.align === 'right' && 'text-right',
                           meta?.className,
                         )}
@@ -432,30 +456,36 @@ export function DataTable<T>({
                       </th>
                     </tr>
                   ) : null}
-                  {group.rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      data-state={row.getIsSelected() ? 'selected' : undefined}
-                      className={cn(
-                        rowHeight,
-                        'border-b border-line last:border-b-0 hover:bg-surface-2/60 data-[state=selected]:bg-accent-soft',
-                        rowClassName?.(row.original),
-                      )}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className={cn(
-                            'px-3 py-1 align-middle',
-                            cell.column.columnDef.meta?.align === 'right' && 'text-right',
-                            cell.column.columnDef.meta?.className,
-                          )}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                  {group.rows.map((row) => {
+                    const href = rowHref?.(row.original)
+                    return (
+                      <tr
+                        key={row.id}
+                        data-state={row.getIsSelected() ? 'selected' : undefined}
+                        onClick={href ? (e) => onRowClick(e, href) : undefined}
+                        onAuxClick={href ? (e) => onRowClick(e, href) : undefined}
+                        className={cn(
+                          rowHeight,
+                          href && 'cursor-pointer',
+                          'border-b border-line transition-colors last:border-b-0 hover:bg-surface-2/50 data-[state=selected]:bg-accent-soft',
+                          rowClassName?.(row.original),
+                        )}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className={cn(
+                              'px-3 py-1 align-middle',
+                              cell.column.columnDef.meta?.align === 'right' && 'text-right',
+                              cell.column.columnDef.meta?.className,
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
                 </tbody>
               ))
             )}

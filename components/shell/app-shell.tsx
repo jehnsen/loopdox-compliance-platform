@@ -12,8 +12,7 @@ import { CommandPalette } from '@/components/shell/command-palette'
 import { IdleTimeout } from '@/components/shell/idle-timeout'
 import { NotificationsBell } from '@/components/shell/notifications-bell'
 import { OrgSwitcher } from '@/components/shell/org-switcher'
-import { SampleDataBanner } from '@/components/shell/sample-data-banner'
-import { Brand, Sidebar, SidebarNav } from '@/components/shell/sidebar'
+import { Sidebar, SidebarDrawerBody } from '@/components/shell/sidebar'
 import type { ThemePref } from '@/components/shell/theme'
 import { UserMenu } from '@/components/shell/user-menu'
 import { Button } from '@/components/ui/button'
@@ -37,7 +36,7 @@ function TopBar({
   const canAsk = hasFeature(tier, 'ask.policy') && can({ roles }, 'ask.use')
   const quickAsk = useQuickAsk()
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-line bg-surface/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:gap-2 lg:px-4">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-line bg-surface/95 px-2 backdrop-blur supports-[backdrop-filter]:bg-surface/80 sm:gap-2 lg:px-6">
       <Button
         variant="ghost"
         size="icon"
@@ -51,7 +50,7 @@ function TopBar({
       <button
         type="button"
         onClick={onOpenPalette}
-        className="ml-1 flex size-8 shrink-0 items-center justify-center gap-2 rounded-md border border-line bg-bg text-base text-muted hover:border-muted/50 sm:h-8 sm:w-auto sm:max-w-sm sm:min-w-0 sm:flex-1 sm:shrink sm:justify-start sm:px-2.5"
+        className="ml-1 flex size-8 shrink-0 items-center justify-center gap-2 rounded-md border border-line bg-surface-2/70 text-base text-muted transition-colors hover:border-line-strong hover:bg-surface sm:h-9 sm:w-auto sm:max-w-md sm:min-w-0 sm:flex-1 sm:shrink sm:justify-start sm:px-3"
         aria-label={`${en.shell.search} (Control K)`}
         aria-keyshortcuts="Control+K Meta+K"
       >
@@ -87,6 +86,7 @@ function TopBar({
             <span className="hidden sm:inline">{en.shell.ask}</span>
           </Button>
         ) : null}
+        <span aria-hidden="true" className="mx-1 hidden h-6 w-px bg-line sm:block" />
         <NotificationsBell />
         <UserMenu initialTheme={theme} />
       </div>
@@ -129,7 +129,7 @@ export function AppShell({
     <QuickAskProvider>
       <div
         className={
-          collapsed ? 'flex min-h-dvh [--sidebar-w:3.5rem]' : 'flex min-h-dvh [--sidebar-w:15rem]'
+          collapsed ? 'flex min-h-dvh [--sidebar-w:3.5rem]' : 'flex min-h-dvh [--sidebar-w:16rem]'
         }
       >
         <a
@@ -140,14 +140,13 @@ export function AppShell({
         </a>
         <Sidebar collapsed={collapsed} onToggle={toggleCollapsed} />
         <Sheet open={navOpen} onOpenChange={setNavOpen}>
-          <SheetContent side="left" className="lg:hidden">
+          <SheetContent
+            side="left"
+            className="border-nav-line bg-nav text-nav-fg lg:hidden"
+            closeClassName="text-nav-muted hover:bg-nav-hover hover:text-nav-strong focus-visible:outline-nav-accent"
+          >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
-            <div className="flex h-14 items-center border-b border-line px-4">
-              <Brand />
-            </div>
-            <div className="flex-1 overflow-y-auto px-3 py-4">
-              <SidebarNav onNavigate={() => setNavOpen(false)} />
-            </div>
+            <SidebarDrawerBody onNavigate={() => setNavOpen(false)} />
           </SheetContent>
         </Sheet>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -156,11 +155,10 @@ export function AppShell({
             onOpenNav={() => setNavOpen(true)}
             theme={theme}
           />
-          <SampleDataBanner />
           <main
             id="main"
             tabIndex={-1}
-            className="mx-auto w-full max-w-content min-w-0 flex-1 px-4 py-6 outline-none lg:px-8"
+            className="mx-auto w-full max-w-content min-w-0 flex-1 px-4 py-6 outline-none sm:py-8 lg:px-8"
           >
             {children}
           </main>

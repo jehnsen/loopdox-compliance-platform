@@ -151,6 +151,7 @@ export function ReviewListPage() {
         setParams={setParams}
         query={query}
         getRowId={(r) => r.id}
+        rowHref={(r) => securityPaths.reviewView(org, r.id)}
         searchPlaceholder="Search by ID or period"
         filters={
           <FacetFilter

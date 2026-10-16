@@ -22,7 +22,13 @@ export function CardHeader({ className, ...props }: React.ComponentProps<'div'>)
 }
 
 export function CardTitle({ className, ...props }: React.ComponentProps<'h2'>) {
-  return <h2 data-slot="card-title" className={cn('text-md font-semibold', className)} {...props} />
+  return (
+    <h2
+      data-slot="card-title"
+      className={cn('text-md font-semibold tracking-tight', className)}
+      {...props}
+    />
+  )
 }
 
 export function CardDescription({ className, ...props }: React.ComponentProps<'p'>) {

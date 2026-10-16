@@ -550,7 +550,7 @@ export function PolicyEditor({
         </Card>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-auto lg:w-[calc(100%-var(--sidebar-w,15rem))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-auto lg:w-[calc(100%-var(--sidebar-w,16rem))]">
         <div className="mx-auto flex max-w-content flex-wrap items-center gap-3 px-4 py-3 lg:px-8">
           <div className="min-w-60 flex-1">
             <SaveNotice doc={doc} requiresApproval={requiresApproval} />

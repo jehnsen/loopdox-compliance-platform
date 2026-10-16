@@ -130,7 +130,7 @@ export function ProcessingPage({ id }: { id: string }) {
               {p.status === 'draft' ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="More actions">
+                    <Button variant="secondary" size="icon" aria-label="More actions">
                       <MoreHorizontalIcon />
                     </Button>
                   </DropdownMenuTrigger>

@@ -115,7 +115,7 @@ export function StatusPill({
     <span
       data-status={status}
       className={cn(
-        'inline-flex h-5.5 items-center gap-1.5 rounded-full px-2 text-xs font-medium whitespace-nowrap',
+        'inline-flex h-5.5 items-center gap-1.5 rounded-full px-2 text-xs font-medium whitespace-nowrap ring-1 ring-current/15 ring-inset',
         TONE_CLASSES[style.tone].pill,
         className,
       )}
@@ -140,7 +140,7 @@ export function SeverityBadge({ severity, className }: { severity: Severity; cla
     <span
       data-severity={severity}
       className={cn(
-        'inline-flex h-5.5 items-center gap-1.5 rounded-sm px-1.5 text-xs font-semibold',
+        'inline-flex h-5.5 items-center gap-1.5 rounded-sm px-1.5 text-xs font-semibold ring-1 ring-current/15 ring-inset',
         TONE_CLASSES[s.tone].pill,
         className,
       )}

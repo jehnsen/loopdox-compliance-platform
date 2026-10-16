@@ -14,10 +14,12 @@ export function SheetContent({
   children,
   side = 'right',
   showClose = true,
+  closeClassName,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: 'left' | 'right'
   showClose?: boolean
+  closeClassName?: string
 }) {
   return (
     <SheetPrimitive.Portal>
@@ -37,7 +39,10 @@ export function SheetContent({
         {children}
         {showClose ? (
           <SheetPrimitive.Close
-            className="absolute top-3 right-3 inline-flex size-7 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-fg"
+            className={cn(
+              'absolute top-3 right-3 inline-flex size-7 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-fg',
+              closeClassName,
+            )}
             aria-label="Close"
           >
             <XIcon className="size-4" />

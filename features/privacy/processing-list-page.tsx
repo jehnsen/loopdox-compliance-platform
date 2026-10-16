@@ -137,6 +137,7 @@ export function ProcessingListPage() {
         setParams={setParams}
         query={query}
         getRowId={(p) => p.id}
+        rowHref={(p) => privacyPaths.processingView(org, p.id)}
         searchPlaceholder="Search by ID, name or purpose"
         exportPath={orgPath(org, '/processing-activities/export')}
         rowClassName={(p) => (p.status === 'retired' ? 'text-muted' : undefined)}

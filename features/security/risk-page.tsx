@@ -70,7 +70,7 @@ export function RiskPage({ id }: { id: string }) {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="More actions">
+                  <Button variant="secondary" size="icon" aria-label="More actions">
                     <MoreHorizontalIcon />
                   </Button>
                 </DropdownMenuTrigger>

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MessageSquareTextIcon } from 'lucide-react'
+import { ArrowUpRightIcon, EyeIcon, MessageSquareTextIcon } from 'lucide-react'
 import { useOverview } from '@/lib/api/hooks/use-overview'
 import { useCan } from '@/lib/auth/can'
 import { isAuditorOnly, ROLE_LABELS } from '@/lib/auth/permissions'
@@ -19,11 +19,17 @@ import { CoverageCard } from '@/features/overview/coverage-card'
 import { DocumentsCard } from '@/features/overview/documents-card'
 import { NeedsAttention } from '@/features/overview/needs-attention'
 import { PoliciesToRead } from '@/features/overview/policies-to-read'
+import { PostureStrip } from '@/features/overview/posture-strip'
 import { RecentActivity } from '@/features/overview/recent-activity'
 
 function DashboardSkeleton() {
   return (
     <div className="grid gap-4 lg:grid-cols-3" aria-busy="true" aria-label="Loading the dashboard">
+      <div className="grid gap-3 sm:grid-cols-2 lg:col-span-3 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-32 rounded-lg" />
+        ))}
+      </div>
       <Skeleton className="h-72 lg:col-span-2" />
       <div className="flex flex-col gap-4">
         <Skeleton className="h-34" />
@@ -57,6 +63,7 @@ function Dashboard({ operational }: { operational: boolean }) {
   )
   return (
     <>
+      <PostureStrip data={data} operational={operational} />
       {operational ? (
         <div className="grid items-start gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
@@ -116,7 +123,8 @@ export function OverviewPage() {
       {staffOnly && canAsk ? <AskBox /> : null}
 
       {auditor ? (
-        <p className="rounded-md border border-line bg-surface px-4 py-3 text-base">
+        <p className="flex items-start gap-3 rounded-lg border border-accent/20 bg-accent-soft px-4 py-3 text-base">
+          <EyeIcon className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
           You have read-only guest access to {org.name}. You can view approved policies, registers
           and evidence. Nothing you do here changes their records.
         </p>
@@ -137,10 +145,15 @@ export function OverviewPage() {
               <li key={g.id}>
                 <Link
                   href={first.href}
-                  className="flex h-full items-start gap-3 rounded-lg border border-line bg-surface p-4 hover:border-accent/50"
+                  className="group flex h-full items-start gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-accent/40 hover:bg-accent-soft/30"
                 >
-                  <g.icon className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden="true" />
-                  <span className="flex flex-col gap-0.5">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent ring-1 ring-accent/15 ring-inset"
+                  >
+                    <g.icon className="size-4.5" />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="font-medium">
                       {g.label}
                       {locked ? (
@@ -155,6 +168,10 @@ export function OverviewPage() {
                       </span>
                     ) : null}
                   </span>
+                  <ArrowUpRightIcon
+                    className="size-4 shrink-0 text-muted transition-[color,translate] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-accent"
+                    aria-hidden="true"
+                  />
                 </Link>
               </li>
             )

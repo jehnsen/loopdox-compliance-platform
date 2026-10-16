@@ -142,6 +142,7 @@ export function AssessmentsListPage() {
         setParams={setParams}
         query={query}
         getRowId={(a) => a.id}
+        rowHref={(a) => aiPaths.assessment(org, a.id)}
         searchPlaceholder="Search by ID or use case"
         filters={
           <>

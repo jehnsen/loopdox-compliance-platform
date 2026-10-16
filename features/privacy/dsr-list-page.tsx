@@ -132,6 +132,7 @@ export function DsrListPage() {
         setParams={setParams}
         query={query}
         getRowId={(d) => d.id}
+        rowHref={(d) => privacyPaths.requestView(org, d.id)}
         searchPlaceholder="Search by ID or type"
         rowClassName={(d) =>
           d.dueState === 'overdue'

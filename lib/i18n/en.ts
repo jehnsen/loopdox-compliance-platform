@@ -4,7 +4,8 @@ import { APP_NAME } from '@/lib/config'
 export const en = {
   app: {
     name: APP_NAME,
-    tagline: 'Policies, privacy and security compliance in one place.',
+    tagline: 'Policy, privacy, security and AI governance in one place.',
+    descriptor: 'Compliance & AI governance',
   },
   auth: {
     signInTitle: `Sign in to ${APP_NAME}`,
@@ -54,8 +55,6 @@ export const en = {
     collapseSidebar: 'Collapse sidebar',
     expandSidebar: 'Expand sidebar',
     reportIncident: 'Report an incident',
-    sampleDataBanner:
-      'You’re looking at sample data. Records marked as samples are fictional and reset with “pnpm mock:reset”.',
     dismiss: 'Dismiss',
     premium: 'Premium',
     locked: 'Not in your plan',

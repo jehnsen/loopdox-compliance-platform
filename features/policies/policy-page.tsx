@@ -7,8 +7,14 @@ import { toast } from 'sonner'
 import {
   AlertTriangleIcon,
   ArchiveIcon,
+  BadgeCheckIcon,
+  CalendarCheckIcon,
+  CalendarClockIcon,
   CheckIcon,
+  CircleDotIcon,
   ClockIcon,
+  FileTextIcon,
+  GitCommitHorizontalIcon,
   InfoIcon,
   LinkIcon,
   MessageSquareWarningIcon,
@@ -16,6 +22,7 @@ import {
   PencilIcon,
   SendIcon,
   Trash2Icon,
+  UserRoundIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { useDocument, useDocumentLookup } from '@/lib/api/hooks/use-documents'
@@ -77,7 +84,10 @@ export function Banner({
     <div
       role="status"
       data-testid={testId}
-      className={cn('flex flex-wrap items-start gap-3 rounded-lg border px-4 py-3', TONES[tone])}
+      className={cn(
+        'flex animate-in flex-wrap items-start gap-3 rounded-lg border px-4 py-3.5 duration-200 fade-in-0',
+        TONES[tone],
+      )}
     >
       <Icon
         className={cn(
@@ -272,9 +282,17 @@ function PolicySkeleton() {
     <div className="flex flex-col gap-5" aria-busy="true">
       <span className="sr-only">Loading…</span>
       <Skeleton className="h-4 w-56" />
-      <Skeleton className="h-8 w-96 max-w-full" />
-      <Skeleton className="h-16" />
-      <Skeleton className="h-96" />
+      <div className="flex items-start gap-4">
+        <Skeleton className="hidden size-12 rounded-lg sm:block" />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-8 w-96 max-w-full" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+        </div>
+      </div>
+      <Skeleton className="h-18 rounded-lg" />
+      <Skeleton className="h-10" />
+      <Skeleton className="h-96 rounded-lg" />
     </div>
   )
 }
@@ -350,7 +368,7 @@ export function PolicyPage({ id }: { id: string }) {
       ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="More actions">
+          <Button variant="secondary" size="icon" aria-label="More actions">
             <MoreHorizontalIcon />
           </Button>
         </DropdownMenuTrigger>
@@ -381,9 +399,17 @@ export function PolicyPage({ id }: { id: string }) {
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <PageHeader
         title={doc.title}
+        icon={FileTextIcon}
+        description={
+          <>
+            {classificationLabel(doc.classification)} · Reviewed every {doc.reviewCycleMonths}{' '}
+            months
+            {doc.requiresApproval ? '' : ' · Published without approval'}
+          </>
+        }
         breadcrumbs={breadcrumbs}
         id={doc.docId}
         version={doc.content?.version ?? doc.currentVersion}
@@ -399,9 +425,10 @@ export function PolicyPage({ id }: { id: string }) {
       <WorkflowBanners doc={doc} onOpen={setDialog} />
       <MetadataStrip
         items={[
-          { label: 'Status', value: <DocStatusPill status={doc.status} /> },
+          { label: 'Status', icon: CircleDotIcon, value: <DocStatusPill status={doc.status} /> },
           {
             label: 'Version',
+            icon: GitCommitHorizontalIcon,
             value: (
               <span className="font-mono">
                 v{doc.currentVersion}
@@ -413,10 +440,15 @@ export function PolicyPage({ id }: { id: string }) {
               </span>
             ),
           },
-          { label: 'Owner', value: doc.ownerName },
-          { label: 'Effective', value: <CalendarDate value={doc.effectiveDate} /> },
+          { label: 'Owner', icon: UserRoundIcon, value: doc.ownerName },
+          {
+            label: 'Effective',
+            icon: CalendarCheckIcon,
+            value: <CalendarDate value={doc.effectiveDate} />,
+          },
           {
             label: 'Next review',
+            icon: CalendarClockIcon,
             value:
               doc.status === 'retired' ? (
                 'Not reviewed'
@@ -426,14 +458,11 @@ export function PolicyPage({ id }: { id: string }) {
           },
           {
             label: 'Approved by',
+            icon: BadgeCheckIcon,
             value: doc.approvedByName ?? <span className="text-muted">Not yet approved</span>,
           },
         ]}
       />
-      <p className="-mt-1 text-sm text-muted">
-        {classificationLabel(doc.classification)} · Reviewed every {doc.reviewCycleMonths} months
-        {doc.requiresApproval ? '' : ' · Published without approval'}
-      </p>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList aria-label="Policy sections">
           {tabs

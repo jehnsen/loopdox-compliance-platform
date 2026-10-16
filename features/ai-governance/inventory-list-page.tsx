@@ -147,6 +147,7 @@ export function InventoryListPage() {
         setParams={setParams}
         query={query}
         getRowId={(u) => u.id}
+        rowHref={(u) => aiPaths.useCase(org, u.id)}
         searchPlaceholder="Search by ID, name, tool or provider"
         filters={
           <>

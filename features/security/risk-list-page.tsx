@@ -224,6 +224,7 @@ export function RiskListPage() {
         setParams={setParams}
         query={{ ...query, basis }}
         getRowId={(r) => r.id}
+        rowHref={(r) => securityPaths.riskView(org, r.id)}
         searchPlaceholder="Search by ID, title or owner"
         rowClassName={(r) => (r.reviewState === 'overdue' ? 'bg-bad-soft/50' : undefined)}
         filters={

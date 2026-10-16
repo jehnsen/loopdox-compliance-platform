@@ -137,6 +137,7 @@ export function IncidentListPage() {
         setParams={setParams}
         query={query}
         getRowId={(i) => i.id}
+        rowHref={(i) => privacyPaths.incidentView(org.slug, i.id)}
         searchPlaceholder="Search by ID or title"
         rowClassName={(i) => (i.status === 'closed' ? 'text-muted' : undefined)}
         filters={

@@ -26,7 +26,7 @@ export function OrgSwitcher() {
       >
         <span
           aria-hidden="true"
-          className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-surface-2 text-2xs font-semibold text-muted"
+          className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent-soft text-xs font-semibold text-accent ring-1 ring-accent/15 ring-inset"
         >
           {org.name.slice(0, 1)}
         </span>

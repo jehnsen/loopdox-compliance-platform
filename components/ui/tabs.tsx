@@ -24,7 +24,7 @@ export function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        '-mb-px inline-flex h-9 items-center gap-1.5 border-b-2 border-transparent px-3 text-base font-medium whitespace-nowrap text-muted hover:text-fg data-[state=active]:border-accent data-[state=active]:text-fg',
+        '-mb-px inline-flex h-10 items-center gap-1.5 border-b-2 border-transparent px-3 text-base font-medium whitespace-nowrap text-muted transition-colors duration-150 hover:border-line-strong hover:text-fg data-[state=active]:border-accent data-[state=active]:text-fg',
         className,
       )}
       {...props}
@@ -37,6 +37,13 @@ export function TabsContent({
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
-    <TabsPrimitive.Content data-slot="tabs-content" className={cn('pt-4', className)} {...props} />
+    <TabsPrimitive.Content
+      data-slot="tabs-content"
+      className={cn(
+        'pt-5 duration-200 data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1',
+        className,
+      )}
+      {...props}
+    />
   )
 }

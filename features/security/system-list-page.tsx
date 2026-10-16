@@ -129,6 +129,7 @@ export function SystemListPage() {
         setParams={setParams}
         query={query}
         getRowId={(s) => s.id}
+        rowHref={(s) => securityPaths.systemView(org, s.id)}
         searchPlaceholder="Search by ID, name or provider"
         filters={
           <>

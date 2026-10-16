@@ -120,6 +120,7 @@ export function DecisionListPage() {
         setParams={setParams}
         query={query}
         getRowId={(d) => d.id}
+        rowHref={(d) => securityPaths.decisionView(org, d.id)}
         searchPlaceholder="Search by ID or words in the decision"
         filters={
           <FacetFilter

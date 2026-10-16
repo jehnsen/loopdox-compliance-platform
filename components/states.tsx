@@ -28,14 +28,14 @@ function StateFrame({
     <div
       role={role}
       className={cn(
-        'flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-surface px-6 py-12 text-center',
+        'flex flex-col items-center gap-3 rounded-lg border border-dashed border-line-strong bg-surface/70 px-6 py-12 text-center',
         className,
       )}
     >
       <span
         className={cn(
-          'flex size-10 items-center justify-center rounded-full',
-          tone === 'bad' ? 'bg-bad-soft text-bad' : 'bg-surface-2 text-muted',
+          'flex size-11 items-center justify-center rounded-lg ring-1 ring-inset',
+          tone === 'bad' ? 'bg-bad-soft text-bad ring-bad/15' : 'bg-surface-2 text-muted ring-line',
         )}
       >
         <Icon className="size-5" aria-hidden="true" />
