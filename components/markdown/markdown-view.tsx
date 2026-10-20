@@ -35,6 +35,18 @@ const components: Components = {
       </a>
     )
   },
+  img: ({ node: _node, src, alt, ...props }) => (
+    // User images of unknown size, loaded through the BFF with the session cookie,
+    // so next/image (which needs dimensions and its own loader) doesn't fit.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={typeof src === 'string' ? src : undefined}
+      alt={alt ?? ''}
+      loading="lazy"
+      decoding="async"
+      {...props}
+    />
+  ),
   table: ({ node: _node, ...props }) => (
     <div className="table-wrap">
       <table {...props} />

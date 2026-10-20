@@ -8,12 +8,17 @@ export interface PolicyTemplate {
   requiresApproval: boolean
 }
 
+/**
+ * Starting structures for new pages. Document control (ID, version, owner,
+ * approver, effective and review dates) lives in LoopDox's metadata, so the
+ * bodies don't repeat it.
+ */
 export const TEMPLATES: PolicyTemplate[] = [
   {
     key: 'policy',
     name: 'Policy',
     description:
-      'A rule the organisation commits to: purpose, scope, statements, roles, compliance and review.',
+      'A rule the organisation commits to: purpose, scope, definitions, statements, roles, compliance, references and review.',
     requiresApproval: true,
     body: `## 1. Purpose
 
@@ -21,56 +26,90 @@ Why this policy exists, in one or two sentences.
 
 ## 2. Scope
 
-Who and what it applies to.
+Who and what it applies to: people, systems, data and locations.
 
-## 3. Policy statements
+## 3. Definitions
 
-### 3.1 First topic
+- **Term:** what it means in this policy.
+
+## 4. Policy statements
+
+### 4.1 First topic
 
 - A clear, testable statement.
 
-## 4. Roles and responsibilities
+## 5. Roles and responsibilities
 
-- **Owner:** keeps this policy current.
+- **Owner:** keeps this policy current and answers questions about it.
+- **Managers:** make sure their teams follow it.
 - **Everyone:** follows it and reports problems.
 
-## 5. Compliance and exceptions
+## 6. Compliance and exceptions
 
-How breaches are handled and how to request an exception.
+How breaches are handled, and how to request an exception: who approves it and where it's recorded.
 
-## 6. Related documents
+## 7. References
+
+The laws and standards this policy helps meet, for example:
+
+- Data Privacy Act of 2012 (RA 10173) and its Implementing Rules and Regulations
+- ISO/IEC 27001:2022 Annex A controls this policy covers
+
+## 8. Related documents
 
 - [[ITD-006]]
 
-## 7. Review
+## 9. Review
 
-This policy is reviewed at least every 12 months.
+This policy is reviewed on the cycle set for it in LoopDox, and sooner after a significant incident, an audit finding or a change in law.
 `,
   },
   {
     key: 'procedure',
     name: 'Procedure / SOP',
-    description: 'Step-by-step instructions for carrying out a task the policies require.',
+    description:
+      'Step-by-step instructions for a task the policies require: who does each step, what to do when it can’t be followed, and what to keep.',
     requiresApproval: true,
     body: `## 1. Purpose
 
 What this procedure achieves and which policy it supports.
 
-## 2. When to use it
+## 2. Scope
+
+Which teams, systems and situations it covers.
+
+## 3. Roles
+
+- **Performer:** who carries out the steps.
+- **Approver:** who signs off, if anyone.
+
+## 4. When to use it
 
 The situations or triggers that start this procedure.
 
-## 3. Steps
+## 5. Before you start
 
-1. First step.
-2. Second step.
-3. Record the result in LoopDox.
+- The access, tools or approvals needed first.
 
-## 4. Records
+## 6. Steps
 
-What evidence to keep, and where.
+1. **Performer:** first step.
+2. **Performer:** second step.
+3. **Performer:** record the result in LoopDox.
 
-## 5. Contacts
+## 7. Exceptions and escalation
+
+What to do when a step can't be followed, and who to escalate to.
+
+## 8. Records
+
+What evidence to keep, where, and for how long.
+
+## 9. Related documents
+
+- [[ITD-006]] (the policy this procedure carries out)
+
+## 10. Contacts
 
 Who to ask for help.
 `,

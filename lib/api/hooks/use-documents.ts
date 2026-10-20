@@ -9,6 +9,7 @@ import type {
   Control,
   CreateDocumentRequest,
   DocumentDetail,
+  DocumentImage,
   DocumentLookupItem,
   DocumentSummary,
   DocumentVersion,
@@ -109,6 +110,17 @@ function useInvalidateDocuments(org: string) {
     void qc.invalidateQueries({ queryKey: qk.documents.all(org) })
     void qc.invalidateQueries({ queryKey: qk.notifications(org) })
   }
+}
+
+/** Uploads an image for a policy page; the result's `url` is used in the Markdown. */
+export function useUploadDocumentImage(org: string) {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const body = new FormData()
+      body.set('file', file)
+      return api.post<DocumentImage>(docs(org, '/images'), body)
+    },
+  })
 }
 
 export function useCreateDocument(org: string) {

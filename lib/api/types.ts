@@ -580,6 +580,18 @@ export interface FileRef {
   uploadedBy: string
 }
 
+/** An image uploaded for use inside a policy page. `url` goes straight into Markdown. */
+export interface DocumentImage {
+  id: string
+  /** Same-origin path, e.g. "/api/v1/orgs/3rdloop/documents/images/img_…". */
+  url: string
+  name: string
+  /** Bytes. */
+  size: number
+  contentType: string
+  uploadedAt: ISODateTime
+}
+
 /** Records that can be linked to each other and shown in LinkedRecords. */
 export type RecordType =
   | 'document'

@@ -445,6 +445,14 @@
     & input[type='checkbox'] {
       margin-right: 0.4em;
     }
+    & img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 1em 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
   }
 }
 

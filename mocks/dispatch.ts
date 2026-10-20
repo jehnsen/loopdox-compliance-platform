@@ -12,6 +12,7 @@ import { changeRoutes } from '@/mocks/handlers/changes'
 import { connectorRoutes } from '@/mocks/handlers/connectors'
 import { controlRoutes } from '@/mocks/handlers/controls'
 import { decisionRoutes } from '@/mocks/handlers/decisions'
+import { documentImageRoutes } from '@/mocks/handlers/document-images'
 import { documentRoutes } from '@/mocks/handlers/documents'
 import { dsrRoutes } from '@/mocks/handlers/dsrs'
 import { evidenceRoutes } from '@/mocks/handlers/evidence'
@@ -44,6 +45,7 @@ const routes = [
   ...auditEventRoutes,
   ...askRoutes,
   ...questionnaireRoutes,
+  ...documentImageRoutes,
   ...documentRoutes,
   ...controlRoutes,
   ...linkRoutes,

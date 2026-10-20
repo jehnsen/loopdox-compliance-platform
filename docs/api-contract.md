@@ -252,7 +252,7 @@ Feature `policies`. Every route below returns 403 `feature_not_in_plan` for tier
 
 ### Types
 
-`Document`, `DocumentSummary`, `DocumentDetail`, `DocumentVersion`, `DocumentVersionSummary`, `WorkflowEvent`, `DocumentLookupItem`, `Acknowledgement` and `AcknowledgementStatus` are in `lib/api/types.ts`. In short:
+`Document`, `DocumentSummary`, `DocumentDetail`, `DocumentVersion`, `DocumentVersionSummary`, `WorkflowEvent`, `DocumentLookupItem`, `DocumentImage`, `Acknowledgement` and `AcknowledgementStatus` are in `lib/api/types.ts`. In short:
 
 - `Document.version` is the **concurrency counter**; `currentVersion` / `approvedVersion` are **content version numbers**.
 - `DocumentSummary` adds `ownerName`, `approvedByName`, `updatedByName`, `childCount` and `reviewState` (`ok | due_soon | overdue | null`). `due_soon` means within the org's `reviewReminderLeadDays` of `nextReviewDate`; `null` means not approved or retired.
@@ -329,6 +329,21 @@ Permission `policies.edit`. Body `UpdateDocumentRequest`: any create fields plus
 ### `DELETE /orgs/:org/documents/:id` → 204
 
 Permission `policies.edit`. Only when `approvedVersion === null` and the document has no children; otherwise 422.
+
+### `POST /orgs/:org/documents/images` → 201 `DocumentImage`
+
+Images for use inside policy pages (the editor's image button, paste and drag-and-drop). Permission `policies.edit`, Policies plan. `multipart/form-data` with `file`.
+
+- PNG, JPEG, GIF or WebP, up to 5 MB. **No SVG** (it can carry scripts). 400 with `fields.file` otherwise.
+- Check the type from the file's **first bytes**, not the declared `Content-Type` or extension, and store the sniffed type. A renamed HTML or SVG file must be refused.
+- `DocumentImage`: `{ id, url, name, size, contentType, uploadedAt }`. `url` is the same-origin path the editor writes into Markdown: `/api/v1/orgs/:org/documents/images/:id`.
+- Images are immutable and never deleted while any version could reference them (versions are immutable too, so in practice: kept with the document's retention).
+
+### `GET /orgs/:org/documents/images/:id` → the image
+
+Permission `policies.read`, Policies plan; 404 for another org's image. Every member who can read policies (staff, auditors) can load images, because approved pages show them.
+
+Headers: `Content-Type` (the sniffed type), `Content-Disposition: inline`, `Cache-Control: private, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`. The BFF passes all four through.
 
 ### `GET /orgs/:org/documents/:id/versions` → `ListResponse<DocumentVersionSummary>`
 

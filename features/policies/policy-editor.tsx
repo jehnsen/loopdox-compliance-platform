@@ -11,6 +11,7 @@ import { AlertTriangleIcon, HistoryIcon, InfoIcon } from 'lucide-react'
 import {
   useCreateDocument,
   useDocumentLookup,
+  useUploadDocumentImage,
   useNextDocId,
   useUpdateDocument,
 } from '@/lib/api/hooks/use-documents'
@@ -155,6 +156,7 @@ export function PolicyEditor({
   const router = useRouter()
   const qc = useQueryClient()
   const lookup = useDocumentLookup(org.slug)
+  const uploadImage = useUploadDocumentImage(org.slug)
   const nextId = useNextDocId(org.slug, !doc)
   const create = useCreateDocument(org.slug)
   const update = useUpdateDocument(org.slug, doc?.id ?? '')
@@ -414,6 +416,7 @@ export function PolicyEditor({
                   onChange={field.onChange}
                   onSave={onEditorSave}
                   lookup={lookup.data}
+                  onUploadImage={(file) => uploadImage.mutateAsync(file)}
                   invalid={Boolean(fieldState.error)}
                 />
               )}

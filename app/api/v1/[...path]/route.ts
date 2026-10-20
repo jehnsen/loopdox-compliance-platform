@@ -26,6 +26,7 @@ const FORWARD_RESPONSE = [
   'etag',
   'allow',
   'x-request-id',
+  'x-content-type-options',
 ]
 
 function errorResponse(status: number, code: string, message: string): NextResponse {

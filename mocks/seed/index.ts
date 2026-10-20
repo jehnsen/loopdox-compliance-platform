@@ -13,7 +13,7 @@ import { seedSystems } from '@/mocks/seed/systems'
 import { seedInvites, seedMemberships, seedOrgs, seedUsers } from '@/mocks/seed/tenants'
 
 /** Bump when seed data changes shape; a persisted .mock-db.json with an older version is reseeded. */
-export const SEED_VERSION = 7
+export const SEED_VERSION = 8
 
 const HOUR = 3_600_000
 
@@ -155,6 +155,7 @@ export function seedDatabase(now: Date): MockDB {
     aiDays: ai.days,
     aiProxy: ai.proxy,
     files: [...privacy.files, ...evidence.files],
+    documentImages: [],
     processingActivities: privacy.processingActivities,
     pias: privacy.pias,
     dsrs: privacy.dsrs,

@@ -118,6 +118,7 @@ export interface MockDB {
   aiDays: MockAiDay[]
   aiProxy: MockAiProxy[]
   files: MockFile[]
+  documentImages: MockDocumentImage[]
   processingActivities: ProcessingActivity[]
   pias: Pia[]
   dsrs: MockDsr[]
@@ -191,6 +192,18 @@ export type MockNotices = Omit<IncidentNotices, 'draftedByName' | 'signedOffByNa
 
 export interface MockIncident extends Omit<Incident, 'notices'> {
   notices: MockNotices | null
+}
+
+/** An image used in policy pages, with its bytes (base64) so the mock can serve it. */
+export interface MockDocumentImage {
+  id: string
+  orgId: string
+  name: string
+  size: number
+  contentType: string
+  data: string
+  uploadedAt: string
+  uploadedBy: string
 }
 
 /** Stored version: names are resolved when returned. */
